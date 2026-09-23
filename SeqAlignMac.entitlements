@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- 沙盒为 Mac App Store 强制要求。开启后应用只能访问：
+         用户经 NSOpenPanel/NSSavePanel 主动选择的文件（user-selected.read-write）、
+         以及应用容器内的路径（含临时目录）。SeqAlignMac 的正常读写均经此面板完成。 -->
+    <key>com.apple.security.app-sandbox</key>
+    <true/>
+    <key>com.apple.security.files.user-selected.read-write</key>
+    <true/>
+    <!-- 允许在重启后保持对已选文档的访问（沙盒推荐） -->
+    <key>com.apple.security.security-scoped-bookmarks.app-sandbox</key>
+    <true/>
+    <!-- 无网络、无麦克风/相机、无越权能力：故意不声明任何额外权限 -->
+</dict>
+</plist>

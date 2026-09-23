@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- 新版 logo：多序列比对列视图（黑白）
+       三条序列行 × 九列残基方块；中央第 5 列在所有行中均为近白（保守列），
+       上下以垂直标线强调「对齐」。其余残基用中性灰阶表现差异。 -->
+  <rect x="0" y="0" width="512" height="512" rx="115" ry="115" fill="#18181b"/>
+
+  <!-- 对齐标线（中央保守列上下延伸） -->
+  <g stroke="#fafafa" stroke-width="5" stroke-linecap="round" opacity="0.85">
+    <line x1="256" y1="96"  x2="256" y2="122"/>
+    <line x1="256" y1="390" x2="256" y2="416"/>
+  </g>
+
+  <!-- 残基方块：行 1 -->
+  <g>
+    <rect x="117" y="149" width="22" height="22" rx="6" fill="#52525b"/>
+    <rect x="149" y="149" width="22" height="22" rx="6" fill="#71717a"/>
+    <rect x="181" y="149" width="22" height="22" rx="6" fill="#a1a1aa"/>
+    <rect x="213" y="149" width="22" height="22" rx="6" fill="#52525b"/>
+    <rect x="245" y="149" width="22" height="22" rx="6" fill="#fafafa"/>
+    <rect x="277" y="149" width="22" height="22" rx="6" fill="#71717a"/>
+    <rect x="309" y="149" width="22" height="22" rx="6" fill="#52525b"/>
+    <rect x="341" y="149" width="22" height="22" rx="6" fill="#a1a1aa"/>
+    <rect x="373" y="149" width="22" height="22" rx="6" fill="#71717a"/>
+  </g>
+
+  <!-- 残基方块：行 2 -->
+  <g>
+    <rect x="117" y="245" width="22" height="22" rx="6" fill="#a1a1aa"/>
+    <rect x="149" y="245" width="22" height="22" rx="6" fill="#52525b"/>
+    <rect x="181" y="245" width="22" height="22" rx="6" fill="#71717a"/>
+    <rect x="213" y="245" width="22" height="22" rx="6" fill="#a1a1aa"/>
+    <rect x="245" y="245" width="22" height="22" rx="6" fill="#fafafa"/>
+    <rect x="277" y="245" width="22" height="22" rx="6" fill="#52525b"/>
+    <rect x="309" y="245" width="22" height="22" rx="6" fill="#71717a"/>
+    <rect x="341" y="245" width="22" height="22" rx="6" fill="#52525b"/>
+    <rect x="373" y="245" width="22" height="22" rx="6" fill="#a1a1aa"/>
+  </g>
+
+  <!-- 残基方块：行 3 -->
+  <g>
+    <rect x="117" y="341" width="22" height="22" rx="6" fill="#71717a"/>
+    <rect x="149" y="341" width="22" height="22" rx="6" fill="#a1a1aa"/>
+    <rect x="181" y="341" width="22" height="22" rx="6" fill="#52525b"/>
+    <rect x="213" y="341" width="22" height="22" rx="6" fill="#71717a"/>
+    <rect x="245" y="341" width="22" height="22" rx="6" fill="#fafafa"/>
+    <rect x="277" y="341" width="22" height="22" rx="6" fill="#a1a1aa"/>
+    <rect x="309" y="341" width="22" height="22" rx="6" fill="#71717a"/>
+    <rect x="341" y="341" width="22" height="22" rx="6" fill="#52525b"/>
+    <rect x="373" y="341" width="22" height="22" rx="6" fill="#a1a1aa"/>
+  </g>
+</svg>

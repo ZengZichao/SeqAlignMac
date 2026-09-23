@@ -1,0 +1,283 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>zh-Hans</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>序列对齐</string>
+    <key>CFBundleDisplayName</key>
+    <string>序列对齐</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.seqalign.mac</string>
+    <key>CFBundleVersion</key>
+    <string>0.1.0</string>
+    <key>CFBundleShortVersionString</key>
+    <string>0.1.0</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleExecutable</key>
+    <string>SeqAlignMac</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+    <key>NSHumanReadableCopyright</key>
+    <string>Copyright © 2026 SeqAlignMac contributors. Released under the MIT License.</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>14.0</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.science</string>
+    <!-- 不使用非豁免加密 → 上架免去加密出口合规人工问卷 -->
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <false/>
+
+    <!-- 文档类型：逐格式声明（不再误占 public.plain-text，
+         旧声明会让 Finder 把本应用列为任意 .txt 的编辑器） -->
+    <key>CFBundleDocumentTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>FASTA Sequence</string>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>CFBundleTypeIconFile</key>
+            <string>AppIcon</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>org.seqalign.fasta</string>
+            </array>
+        </dict>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>FASTQ Sequence</string>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>CFBundleTypeIconFile</key>
+            <string>AppIcon</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>org.seqalign.fastq</string>
+            </array>
+        </dict>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>Stockholm Alignment</string>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>CFBundleTypeIconFile</key>
+            <string>AppIcon</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>org.seqalign.stockholm</string>
+            </array>
+        </dict>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>NEXUS Alignment</string>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>CFBundleTypeIconFile</key>
+            <string>AppIcon</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>org.seqalign.nexus</string>
+            </array>
+        </dict>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>PHYLIP Alignment</string>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>CFBundleTypeIconFile</key>
+            <string>AppIcon</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>org.seqalign.phylip</string>
+            </array>
+        </dict>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>CLUSTAL Alignment</string>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>CFBundleTypeIconFile</key>
+            <string>AppIcon</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>org.seqalign.clustal</string>
+            </array>
+        </dict>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>MSF Alignment</string>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>CFBundleTypeIconFile</key>
+            <string>AppIcon</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>org.seqalign.msf</string>
+            </array>
+        </dict>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>Gzip archive</string>
+            <key>CFBundleTypeRole</key>
+            <string>Viewer</string>
+            <key>CFBundleTypeIconFile</key>
+            <string>AppIcon</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>org.gnu.gnu-zip-archive</string>
+            </array>
+        </dict>
+    </array>
+
+    <!-- 声明自定义 UTI：建立扩展→类型映射，拖放/打开方式/图标关联才能正常工作 -->
+    <key>UTImportedTypeDeclarations</key>
+    <array>
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>org.seqalign.fasta</string>
+            <key>UTTypeDescription</key>
+            <string>FASTA Sequence</string>
+            <key>UTTypeConformsTo</key>
+            <array>
+                <string>public.plain-text</string>
+            </array>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array>
+                    <string>fasta</string>
+                    <string>fa</string>
+                    <string>fas</string>
+                    <string>fna</string>
+                    <string>faa</string>
+                    <string>mpfa</string>
+                </array>
+            </dict>
+        </dict>
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>org.seqalign.fastq</string>
+            <key>UTTypeDescription</key>
+            <string>FASTQ Sequence</string>
+            <key>UTTypeConformsTo</key>
+            <array>
+                <string>public.plain-text</string>
+            </array>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array>
+                    <string>fastq</string>
+                    <string>fq</string>
+                </array>
+            </dict>
+        </dict>
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>org.seqalign.stockholm</string>
+            <key>UTTypeDescription</key>
+            <string>Stockholm Alignment</string>
+            <key>UTTypeConformsTo</key>
+            <array>
+                <string>public.plain-text</string>
+            </array>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array>
+                    <string>sto</string>
+                    <string>stockholm</string>
+                </array>
+            </dict>
+        </dict>
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>org.seqalign.nexus</string>
+            <key>UTTypeDescription</key>
+            <string>NEXUS Alignment</string>
+            <key>UTTypeConformsTo</key>
+            <array>
+                <string>public.plain-text</string>
+            </array>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array>
+                    <string>nexus</string>
+                    <string>nex</string>
+                </array>
+            </dict>
+        </dict>
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>org.seqalign.phylip</string>
+            <key>UTTypeDescription</key>
+            <string>PHYLIP Alignment</string>
+            <key>UTTypeConformsTo</key>
+            <array>
+                <string>public.plain-text</string>
+            </array>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array>
+                    <string>phy</string>
+                    <string>phylip</string>
+                </array>
+            </dict>
+        </dict>
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>org.seqalign.clustal</string>
+            <key>UTTypeDescription</key>
+            <string>CLUSTAL Alignment</string>
+            <key>UTTypeConformsTo</key>
+            <array>
+                <string>public.plain-text</string>
+            </array>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array>
+                    <string>aln</string>
+                </array>
+            </dict>
+        </dict>
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>org.seqalign.msf</string>
+            <key>UTTypeDescription</key>
+            <string>MSF Alignment</string>
+            <key>UTTypeConformsTo</key>
+            <array>
+                <string>public.plain-text</string>
+            </array>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array>
+                    <string>msf</string>
+                </array>
+            </dict>
+        </dict>
+    </array>
+
+    <key>NSMainNibFile</key>
+    <string></string>
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
+    <key>NSSupportsAutomaticTermination</key>
+    <true/>
+    <!-- 关闭 sudden termination：应用有 isDirty 未保存守卫，
+         允许系统不经 delegate 直接 kill 会让未保存编辑无提示丢失 -->
+    <key>NSSupportsSuddenTermination</key>
+    <false/>
+</dict>
+</plist>

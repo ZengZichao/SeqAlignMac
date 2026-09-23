@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# 同一分支连续 push 时取消旧 run；macOS 分钟配额宝贵，挂起的 run 也要限时
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Tests & build (macOS)
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - name: Select latest Xcode (Swift 6 toolchain)
+        # Package.swift 声明 swift-tools-version:6.0，macos 镜像的默认工具链
+        # 可能是 Xcode 15（Swift 5.10），显式选择镜像上最新的 Xcode
+        run: |
+          ls -d /Applications/Xcode*.app
+          sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort -V | tail -1)"
+          xcodebuild -version
+          swift --version
+      - name: Run SeqAlignCore tests
+        run: swift test
+      - name: Build core library (release)
+        # swift build -c release 与 build.sh 的 swiftc -O 是两条编译路径，
+        # SPM release 编译问题（优化器断言等）需要单独暴露
+        run: swift build -c release
+      - name: Build app bundle
+        run: ./build.sh --skip-tests
+      - name: Upload app bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: SeqAlignMac-app
+          path: SeqAlignMac.app.zip
+          retention-days: 14
+
+  lint:
+    name: Repo lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - name: Ensure build artifacts are not committed
+        run: |
+          if git ls-files | grep -E '^SeqAlignMac\.app(\.zip)?$|/SeqAlignMac\.app/' ; then
+            echo "❌ 仓库内含构建产物，请移除（已在 .gitignore）"; exit 1
+          fi
+          echo "✅ 无构建产物入库"
+      - name: i18n hardcode audit (non-blocking)
+        # 已知待办：视图/解析层仍有硬编码中文字符串，应迁入 Localization.swift 的 L.s。
+        # 迁移完成前设为 warning，避免长期红 CI 掩盖其它失败。
+        continue-on-error: true
+        run: |
+          n=$(grep -rP '"[^"]*[一-鿿][^"]*"' Sources --include='*.swift' \
+                | grep -v 'Localization.swift' | grep -vE '^\s*[^:]+:[0-9]+:\s*//' | wc -l)
+          echo "⚠️  Sources/ 中存在 $n 行硬编码中文（应迁入 L.s），见发布前待办清单"

@@ -1,0 +1,35 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Swift Package Manager 构建产物
+.build/
+.swiftpm/
+*.xcodeproj
+xcuserdata/
+Package.resolved
+
+# build.sh 生成的应用与分发产物（发布时由 CI / 本地脚本重建）
+SeqAlignMac.app/
+SeqAlignMac.app.zip
+icon.iconset/
+
+# 临时文件
+*.log
+*.tmp
+
+# 内部工具状态目录与游离产物（不应进入开源仓库）
+.mimosa/
+.video_agent/
+.v2c/
+/execution
+
+# IDE / 编辑器
+.vscode/
+.idea/
+*.xcworkspace
+*.xcuserstate
+*.swp
+*.swo
+*~
