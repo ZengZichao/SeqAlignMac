@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "SeqAlignMac: A native macOS application for viewing, editing, and analysing multiple sequence alignments"
+authors:
+  - family-given: "Zeng, Zichao"
+    affiliation: "Shanghai Jiao Tong University"
+date-released: "2026-09-24"
+version: "v0.1.0"
+repository-code: "https://github.com/ZengZichao/SeqAlignMac"
+url: "https://doi.org/10.5281/zenodo.23053514"
+doi: 10.5281/zenodo.23053514
+license: MIT
+keywords:
+  - multiple sequence alignment
+  - bioinformatics
+  - macOS
+  - Swift

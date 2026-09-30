@@ -1,6 +1,7 @@
 # SeqAlignMac
 
 ![CI](https://img.shields.io/github/actions/workflow/status/zengzichao/SeqAlignMac/ci.yml?branch=main&label=CI&style=flat-square)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23053513.svg)](https://doi.org/10.5281/zenodo.23053513)
 
 SeqAlignMac 是一款 macOS 原生多序列比对（MSA）查看与编辑器，使用 Swift 和 SwiftUI 构建。与 Jalview、AliView 等基于 Java 的桌面工具不同，SeqAlignMac 面向 macOS 14+ 原生设计，提供极简的黑白配色界面、色觉无障碍（Okabe-Ito 色板）、中英双语界面切换，以及用于批量处理的无界面命令行接口。
 
@@ -100,12 +101,19 @@ swift test        # 仅运行 SeqAlignCore 单元测试
 如果您在研究中使用了 SeqAlignMac，请引用本软件：
 
 ```bibtex
-@software{seqalignmac,
-  title  = {SeqAlignMac: A native macOS application for viewing, editing, and analysing multiple sequence alignments},
-  year   = {2026},
-  url    = {https://github.com/zengzichao/SeqAlignMac}
+@software{zeng2026seqalignmac,
+  author    = {Zeng, Zichao},
+  title     = {SeqAlignMac: A native macOS application for viewing, editing, and analysing multiple sequence alignments},
+  year      = {2026},
+  month     = sep,
+  note      = {v0.1.0},
+  publisher = {Zenodo},
+  doi       = {10.5281/zenodo.23053514},
+  url       = {https://doi.org/10.5281/zenodo.23053514}
 }
 ```
+
+如需引用不绑定具体版本的全部已发布版本，请使用概念 DOI [10.5281/zenodo.23053513](https://doi.org/10.5281/zenodo.23053513)，它始终解析到最新版本。
 
 ### 参考文献
 

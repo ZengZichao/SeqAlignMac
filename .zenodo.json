@@ -1,0 +1,31 @@
+{
+  "title": "SeqAlignMac: A native macOS application for viewing, editing, and analysing multiple sequence alignments",
+  "creators": [
+    {
+      "name": "Zeng, Zichao",
+      "affiliation": "Shanghai Jiao Tong University"
+    }
+  ],
+  "description": "SeqAlignMac is a native macOS application for viewing, editing, and analysing multiple sequence alignments, built entirely in Swift and SwiftUI. It reads and writes seven alignment formats (FASTA, FASTQ, NEXUS, PHYLIP, CLUSTAL, MSF, Stockholm) with automatic gzip decompression, and provides six-frame translation across 17 NCBI genetic code tables, nearest-neighbour primer Tm calculation, neighbour-joining tree inference, sequence logo generation, column-level quality statistics, IUPAC-aware degenerate primer analysis, and vector export to PNG, PDF and SVG. A pure-logic core library (SeqAlignCore) is isolated from the rendering layer and covered by 110 unit tests.",
+  "license": {
+    "name": "MIT"
+  },
+  "upload_type": "software",
+  "keywords": [
+    "multiple sequence alignment",
+    "bioinformatics",
+    "macOS",
+    "Swift",
+    "SwiftUI",
+    "sequence analysis",
+    "primer design",
+    "phylogenetics"
+  ],
+  "related_identifiers": [
+    {
+      "scheme": "url",
+      "identifier": "https://github.com/ZengZichao/SeqAlignMac",
+      "relation": "isSupplementTo"
+    }
+  ]
+}

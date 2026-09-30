@@ -1,6 +1,7 @@
 # SeqAlignMac
 
 ![CI](https://img.shields.io/github/actions/workflow/status/zengzichao/SeqAlignMac/ci.yml?branch=main&label=CI&style=flat-square)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23053513.svg)](https://doi.org/10.5281/zenodo.23053513)
 
 A native macOS application for viewing, editing, and analysing multiple sequence alignments. SeqAlignMac is built entirely in Swift and SwiftUI, providing a minimalist, distraction-free interface with a monochrome aesthetic and full keyboard navigation. Unlike Jalview or AliView, which are Java-based desktop tools, SeqAlignMac is designed from the ground up for macOS 14+, offering a native Apple experience with built-in colour-vision-deficiency accessibility (Okabe-Ito palette), bilingual (English and Chinese) localisation, and a headless command-line interface for batch processing in reproducible pipelines.
 
@@ -100,12 +101,19 @@ Table 1: Feature comparison of SeqAlignMac with established alignment editors.
 If you use SeqAlignMac in your research, please cite the software:
 
 ```bibtex
-@software{seqalignmac,
-  title  = {SeqAlignMac: A native macOS application for viewing, editing, and analysing multiple sequence alignments},
-  year   = {2026},
-  url    = {https://github.com/zengzichao/SeqAlignMac}
+@software{zeng2026seqalignmac,
+  author    = {Zeng, Zichao},
+  title     = {SeqAlignMac: A native macOS application for viewing, editing, and analysing multiple sequence alignments},
+  year      = {2026},
+  month     = sep,
+  note      = {v0.1.0},
+  publisher = {Zenodo},
+  doi       = {10.5281/zenodo.23053514},
+  url       = {https://doi.org/10.5281/zenodo.23053514}
 }
 ```
+
+To cite the software independently of its version, use the concept DOI [10.5281/zenodo.23053513](https://doi.org/10.5281/zenodo.23053513), which always resolves to the most recent release.
 
 ### References
 
