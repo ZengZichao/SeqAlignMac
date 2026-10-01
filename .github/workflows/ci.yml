@@ -16,7 +16,7 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Select latest Xcode (Swift 6 toolchain)
         # Package.swift 声明 swift-tools-version:6.0，macos 镜像的默认工具链
         # 可能是 Xcode 15（Swift 5.10），显式选择镜像上最新的 Xcode
@@ -45,7 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Ensure build artifacts are not committed
         run: |
           if git ls-files | grep -E '^SeqAlignMac\.app(\.zip)?$|/SeqAlignMac\.app/' ; then
