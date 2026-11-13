@@ -42,7 +42,7 @@ SeqAlignMac 是一款 macOS 原生多序列比对（MSA）查看、编辑与分�
 要求：macOS 14.0 及以上，Xcode 16 或 Swift 6.0 工具链。`build.sh` 按 Apple Silicon（`arm64-apple-macosx14.0`）目标编译。
 
 ```bash
-git clone https://github.com/zengzichao/SeqAlignMac.git
+git clone https://github.com/ZengZichao/SeqAlignMac.git
 cd SeqAlignMac
 ./build.sh
 ```

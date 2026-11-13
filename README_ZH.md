@@ -1,6 +1,6 @@
 # SeqAlignMac
 
-![CI](https://img.shields.io/github/actions/workflow/status/zengzichao/SeqAlignMac/ci.yml?branch=main&label=CI&style=flat-square)
+![CI](https://img.shields.io/github/actions/workflow/status/ZengZichao/SeqAlignMac/ci.yml?branch=main&label=CI&style=flat-square)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23053513.svg)](https://doi.org/10.5281/zenodo.23053513)
 
 SeqAlignMac 是一款 macOS 原生多序列比对（MSA）查看、编辑与分析应用，使用 Swift 编写，在 SwiftUI 外壳中承载 AppKit Core Text 画布，提供极简、无干扰的黑白配色界面与完整的键盘导航。与 Jalview、AliView 等基于 Java 的桌面工具不同，SeqAlignMac 面向 macOS 14+ 从零开始设计，带来原生 Apple 体验，内置色觉无障碍支持（Okabe-Ito 色板）、中英双语界面切换，以及用于在可复现流程中批量处理的无界面命令行接口。
@@ -55,7 +55,7 @@ SeqAlignMac.app/Contents/MacOS/SeqAlignMac cli convert alignment.fasta --format 
 要求：macOS 14.0+，Xcode 16 或 Swift 6.0 工具链。
 
 ```bash
-git clone https://github.com/zengzichao/SeqAlignMac.git
+git clone https://github.com/ZengZichao/SeqAlignMac.git
 cd SeqAlignMac
 ./build.sh        # swift test（领域层单元测试）→ swiftc 编译 .app → ad-hoc 签名 → 打包 zip
 ./build.sh --skip-tests   # 跳过 swift test（CI 中已单独执行）

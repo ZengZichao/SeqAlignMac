@@ -40,7 +40,7 @@ SeqAlignMac is a native macOS application for viewing, editing, and analysing mu
 Requirements: macOS 14.0 or later, Xcode 16 or the Swift 6.0 toolchain. `build.sh` compiles for Apple Silicon (`arm64-apple-macosx14.0`).
 
 ```bash
-git clone https://github.com/zengzichao/SeqAlignMac.git
+git clone https://github.com/ZengZichao/SeqAlignMac.git
 cd SeqAlignMac
 ./build.sh
 ```

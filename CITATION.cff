@@ -3,7 +3,8 @@ message: "If you use this software, please cite it as below."
 type: software
 title: "SeqAlignMac: A native macOS application for viewing, editing, and analysing multiple sequence alignments"
 authors:
-  - family-given: "Zeng, Zichao"
+  - family-names: "Zeng"
+    given-names: "Zichao"
     affiliation: "Shanghai Jiao Tong University"
 date-released: "2026-09-24"
 version: "v0.1.0"

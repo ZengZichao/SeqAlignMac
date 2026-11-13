@@ -15,7 +15,7 @@ struct AboutView: View {
     @software{seqalignmac,
       title  = {SeqAlignMac: A native macOS application for viewing, editing, and analysing multiple sequence alignments},
       year   = {2026},
-      url    = {https://github.com/zengzichao/SeqAlignMac}
+      url    = {https://github.com/ZengZichao/SeqAlignMac}
     }
     """
 

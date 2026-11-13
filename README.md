@@ -1,6 +1,6 @@
 # SeqAlignMac
 
-![CI](https://img.shields.io/github/actions/workflow/status/zengzichao/SeqAlignMac/ci.yml?branch=main&label=CI&style=flat-square)
+![CI](https://img.shields.io/github/actions/workflow/status/ZengZichao/SeqAlignMac/ci.yml?branch=main&label=CI&style=flat-square)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23053513.svg)](https://doi.org/10.5281/zenodo.23053513)
 
 A native macOS application for viewing, editing, and analysing multiple sequence alignments. SeqAlignMac is written in Swift, with an AppKit Core Text canvas hosted inside a SwiftUI shell, providing a minimalist, distraction-free interface with a monochrome aesthetic and full keyboard navigation. Unlike Jalview or AliView, which are Java-based desktop tools, SeqAlignMac is designed from the ground up for macOS 14+, offering a native Apple experience with built-in colour-vision-deficiency accessibility (Okabe-Ito palette), bilingual (English and Chinese) localisation, and a headless command-line interface for batch processing in reproducible pipelines.
@@ -56,7 +56,7 @@ SeqAlignMac.app/Contents/MacOS/SeqAlignMac cli convert alignment.fasta --format 
 Requirements: macOS 14.0 or later, Xcode 16 or Swift 6.0 toolchain.
 
 ```bash
-git clone https://github.com/zengzichao/SeqAlignMac.git
+git clone https://github.com/ZengZichao/SeqAlignMac.git
 cd SeqAlignMac
 ./build.sh        # runs swift test, compiles, ad-hoc signs, and packages the .app bundle
 ./build.sh --skip-tests   # skip swift test (CI runs tests separately)
