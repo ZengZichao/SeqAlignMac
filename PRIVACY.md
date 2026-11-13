@@ -1,6 +1,6 @@
 # 隐私政策 / Privacy Policy
 
-**最近更新日期 / Last updated: 2026-09-15**
+**最近更新日期 / Last updated: 2026-11-13**
 
 ## 一句话结论
 
@@ -23,12 +23,12 @@ analysis, translation and export happen entirely on your device. The app has **n
 ## 第三方内容
 
 - 「外部比对器」功能（MAFFT / MUSCLE / ClustalW2）仅在你本机、由你主动指定可执行文件路径后调用，
-  数据不离开本机。**Mac App Store 版本因沙盒限制不含此功能**（详见下文）。
+  数据不离开本机。**启用沙箱的构建（App Store 分发所必需）下该功能无法工作**（详见下文）。
 - 应用不嵌入任何第三方追踪 SDK。
 
 ## 儿童隐私
 
-应用为通用科研 / 生产力工具，不专门面向儿童，也不收集任何用户数据，符合 COPPA / GDPR-K 相关要求。
+应用为通用科研 / 生产力工具，不专门面向儿童。应用没有账号系统、无网络访问能力、不收集也不传输任何用户数据（见上表），因此不处理包括儿童在内的任何人的个人信息。本文件不宣称 COPPA / GDPR-K 一类法规下的合规状态——该认定取决于发行方式与所在司法辖区，无法由本仓库代码验证。
 
 ## 数据保留与删除
 
@@ -46,13 +46,16 @@ analysis, translation and export happen entirely on your device. The app has **n
 
 ## 外部比对器与 Mac App Store 的说明
 
-App Store 的 App Sandbox 不允许应用启动用户自行安装的外部可执行文件。因此
-**上架 Mac App Store 的版本将隐藏「外部比对器」入口**；GitHub 直发版本（Developer ID 签名 + 公证）
-保留完整的外部比对器功能。两个版本除该功能外行为一致。
+App Store 的 App Sandbox 不允许应用启动用户自行安装的外部可执行文件。因此在启用沙箱的构建
+（`build.sh` 的 `SEQALIGN_SANDBOX=1` → `SeqAlignMac.entitlements`）中，「外部比对器」入口照旧
+显示，但外部程序的启动会被系统拒绝，界面给出执行失败的信息：代码里不存在按构建开关隐藏该入口
+的分支，该功能是由 entitlement 关闭的，而不是由运行期开关关闭的。默认构建（`./build.sh`，ad-hoc
+签名、不启用沙箱）保留完整的外部比对器功能；沙箱构建另将文件访问限制为用户主动选择的文件与
+应用容器内路径（`files.user-selected.read-write`）。
 
 ## 联系我们
 
-安全问题请见 `SECURITY.md`；一般咨询请通过仓库 Issues 或作者联系方式。
+安全问题请见 `SECURITY.md`；一般咨询请通过仓库 Issues 提出（本仓库未公布电子邮箱或 PGP 等直联方式）。
 
 ---
 

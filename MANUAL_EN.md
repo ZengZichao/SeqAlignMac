@@ -75,7 +75,7 @@ Gzip-compressed files (`.gz`, e.g. `alignment.fasta.gz`) are transparently decom
 
 ### Methods
 
-1. **Menu**: File ▸ Open (Cmd+O)
+1. **Menu**: File ▸ Open File… (Cmd+O)
 2. **Drag and Drop**: Drag a file onto the application icon or onto the window
 3. **Command line**: `open -a SeqAlignMac alignment.fasta`
 4. **Recent Files**: File ▸ Open Recent
@@ -87,13 +87,13 @@ Gzip-compressed files (`.gz`, e.g. `alignment.fasta.gz`) are transparently decom
 
 The main window is organised into three always-visible panels:
 
-- **Left Sidebar**: File operations (Open, Save, Example), analysis tools (Run MSA, Translate, Primer, Quality, Logo, NJ Tree, Window, Annotation), colour-scheme selector, and view controls (Search, Difference mode, Legend, Undo, Redo).
-- **Center Panel**: The alignment canvas with sequence names (left), residues (centre), the consensus track (top), and the conservation track above the residues. Click or drag on the conservation track to jump to a column.
+- **Left Sidebar**: File operations (Open, Save, Example), analysis tools (Align, Translate, Primer, Quality, Logo, NJ Tree, Window, Annotation), colour-scheme selector, and view controls (Search, Difference mode, Legend, Undo, Redo).
+- **Center Panel**: The alignment canvas with sequence names (left), residues (centre), the consensus row (top), and the conservation track above the residues. Click or drag on the conservation track to jump to a column.
 - **Right Statistics Panel**: Real-time quality metrics, the consensus sequence, and cursor information.
 
 Panel widths are adjusted by **dragging the vertical dividers** between panels (sidebar 150–320 pt, statistics panel 220–460 pt). The widths are remembered between sessions.
 
-The title bar supports multiple tabs (Cmd+T for a new tab). Each tab holds an independent alignment with its own undo stack; tabs are closed with the ✕ button on the tab label, and Cmd+W closes the window.
+The title bar supports multiple tabs (Cmd+T for a new tab). Each tab holds an independent alignment with its own undo stack; tabs are closed with the ✕ button on the tab label, and Cmd+W closes the current tab (Cmd+Shift+W closes the window).
 
 ### Canvas Interactions
 
@@ -126,7 +126,7 @@ Switch via the sidebar selector, the View menu, or the keyboard shortcuts Cmd+Sh
 | SeaView | Cmd+Shift+4 | Simplified grouping |
 | Default | — | Standard nucleotide colours (A/C/G/T/N/gap) |
 | Transition/Transversion | — | Purine↔purine (transition) vs. purine↔pyrimidine (transversion) |
-| Okabe-Ito | — | Colour-vision-deficiency-friendly palette (Wong, 2011) |
+| Okabe-Ito | Cmd+Shift+5 | Colour-vision-deficiency-friendly palette (Wong, 2011) |
 
 The ClustalX conservation threshold is adjustable in Preferences (0.1–0.9, default 0.3). Columns below the threshold remain uncoloured. A colour legend is available via the sidebar Legend button.
 
@@ -141,7 +141,7 @@ All edits go through the undo/redo stack (up to 50 steps; older steps are discar
 Right-click menus are context-sensitive:
 
 - **Name area**: Rename Sequence, Delete Sequence, Move to Top, Move to Bottom, Sort By (Name, Similarity, GC Content, Length, Length without Gaps), Gap Trimming (Remove all-gap Columns / Remove high-gap Columns, >50% gap).
-- **Residue area**: Copy Selection, Colour Scheme submenu (all seven schemes), Reverse Complement (nucleotides only), Translate Region, Gap Trimming submenu.
+- **Data area**: Copy Selection, Colour Scheme submenu (all seven schemes), Reverse Complement (nucleotides only), Translate Region, Gap Trimming submenu.
 - **Empty area** (below the alignment): Insert Gap, Paste, Add Sequence.
 
 ### Common Operations
@@ -178,7 +178,7 @@ Open the search bar with Cmd+F (or the sidebar Search button).
 
 Access via Tools ▸ Translate (Cmd+Shift+T). Nucleotide alignments only.
 
-- **Genetic code table**: 17 of the 27 genetic code tables currently defined by NCBI (values verified against the NCBI official `gc.prt` release via Biopython); unsupported table IDs are not offered in the UI and there is no silent fallback
+- **Genetic code table**: 17 NCBI genetic-code tables (values verified against the NCBI official `gc.prt` release via Biopython); unsupported table IDs are not offered in the UI and there is no silent fallback
 - **Reading frame**: −3 to +3 (six-frame)
 - **Display mode**: Codon-only, amino-acid, both (interleaved), or ignore gaps (gaps removed before translation)
 - **Sequence names**: keep original names or add an `_AA` suffix
@@ -211,16 +211,16 @@ Access via Tools ▸ Alignment Quality.
 
 | Metric | Definition |
 |---|---|
-| Mean pairwise identity | Column-frequency method, gaps excluded |
+| Pooled identity (site-weighted) | Column-frequency method over informative sites (gaps and undetermined symbols excluded from the denominator); not the mean over sequence pairs |
 | Min/Max column identity | Extreme column conservation values |
-| Gap columns | Columns containing only gap characters |
-| Variable sites | ≥2 residue types (non-gap) |
+| Gap columns | Columns containing only gap characters, or only undetermined residues (nucleotides: all N, all X, all ?; protein: also all B or all Z) |
+| Variable sites | ≥2 defined (assignable) residue types |
 | Parsimony-informative sites | ≥2 types, each present in ≥2 sequences |
 | Singleton sites | Exactly 1 sequence differs |
 | GC content | Fraction of G+C (nucleotides only) |
 | FASTQ quality | Mean Phred and Q20/Q30 ratios (FASTQ input only) |
 
-The same statistics are written by the CLI `stats` command (Section 16).
+The table above gives the metric definitions. The quality report sheet itself lists pooled identity, min/max column identity, gap columns, total columns, consensus length and the FASTQ figures; GC content and the variable / parsimony / singleton counts appear only in the live stats panel and in the CLI `stats` output (Section 16).
 
 ---
 
@@ -230,7 +230,7 @@ Access via the sidebar ▸ Logo button. Displays the information content per col
 
 R(l) = log₂K − (H(l) + e(n))
 
-where K is the alphabet size, H the Shannon entropy, and e(n) = (K−1)/(2·ln2·n) the small-sample correction. Gaps are excluded. Letter height = residue fraction × column information. Page through long alignments with the ‹ › controls.
+where K is the alphabet size, H the Shannon entropy, and e(n) = (K−1)/(2·ln2·n) the small-sample correction. Entropy is computed over defined (assignable) residues only — gaps and ambiguity codes are dropped, not fractionally redistributed. Letter height = residue fraction × column information. Page through long alignments with the ‹ › controls.
 
 ---
 
@@ -239,8 +239,8 @@ where K is the alphabet size, H the Shannon entropy, and e(n) = (K−1)/(2·ln2�
 Access via the sidebar ▸ NJ Tree button.
 
 - Method: Saitou and Nei (1987)
-- Distance: uncorrected p-distance, computed over mutually non-gap sites only
-- Subsampling: if the alignment has more than 200 sequences, the first 200 are used
+- Distance: uncorrected p-distance, computed only over sites where neither sequence has a gap or an undetermined residue (N/X)
+- Subsampling: if the alignment has more than 200 sequences, an evenly spaced (equal-interval) sample of 200 is used
 - Output: Newick string with a copy-to-clipboard button
 
 ---
@@ -257,7 +257,7 @@ Access via the sidebar ▸ Window button.
 
 ## 13. External Alignment Tools
 
-Access via the sidebar ▸ Run MSA button, or Tools ▸ Run Alignment (Cmd+Shift+B). Runs an external multiple-alignment program on a FASTA file you choose and opens the result in a new tab/window.
+Access via the sidebar ▸ Align button, or Tools ▸ Run Alignment (Cmd+Shift+B). Runs an external multiple-alignment program on a FASTA file you choose and opens the result in a new tab/window.
 
 Built-in presets (command templates; `{input}`/`{output}` are placeholders):
 
@@ -268,12 +268,12 @@ Built-in presets (command templates; `{input}`/`{output}` are placeholders):
 | ClustalW2 | `clustalw2 -infile={input} -outfile={output} -quiet` | output file |
 | Custom | user-defined template | standard output (configurable) |
 
-The external program must be installed and reachable through your `PATH` (e.g., `brew install mafft muscle clustal-w`); the application searches `/opt/homebrew/bin`, `/usr/local/bin`, `/usr/bin`, and `/bin` in turn.
+The external program must be installed and reachable through your `PATH` (e.g., `brew install mafft muscle clustal-w`); the application searches `/opt/homebrew/bin`, `/opt/homebrew/sbin`, `/usr/local/bin`, `/usr/local/sbin`, `/usr/bin`, and `/bin` in turn, and finally falls back to querying `/usr/bin/which`.
 
 Behaviour notes:
 
 - MAFFT and custom presets read the alignment result from the process **standard output** (MAFFT does not write an output file).
-- Large outputs are drained concurrently on a background queue, preventing the 64 KB pipe-buffer deadlock; on timeout (5 min) the process receives SIGTERM, escalating to SIGKILL after a 5-second grace period.
+- Large outputs are drained concurrently on a background queue, preventing the 64 KB pipe-buffer deadlock; on timeout (configurable, 30–3600 s, default 300 s) the process receives SIGTERM, escalating to SIGKILL after a 5-second grace period.
 - Result formats are **auto-detected** (ClustalW2 writes CLUSTAL format rather than FASTA, and is now parsed correctly).
 - If a custom command contains no `{input}` placeholder, the sequence data is passed via **stdin**.
 
@@ -284,7 +284,7 @@ Behaviour notes:
 Access via the sidebar ▸ Annotation button.
 
 - Import a GFF3 annotation file
-- Browse features filtered by type, name, and coordinate range
+- Browse the features in a plain table (sequence, type, coordinate range, name); no filter controls are provided
 - Click Jump to navigate the canvas to the annotation region
 
 ---
@@ -296,14 +296,14 @@ Access via the sidebar ▸ Annotation button.
 Open with File ▸ Export Preview (Cmd+Shift+E), or File ▸ Export PNG/PDF/SVG for direct export.
 
 - Formats: PNG, PDF, SVG
-- Options: dark mode, colour scheme, font size, export selection only (available when a selection exists)
+- Options: format (PNG / PDF / SVG), export selection only (available when a selection exists), dark mode; the estimated output size is shown
 - A live preview is shown before export
 
 ### Sequence Export
 
-- Formats: FASTA, NEXUS, PHYLIP, CLUSTAL, MSF, Stockholm
-- The output format follows the file extension chosen in the save dialog (e.g., `.nexus`/`.nex` → NEXUS, `.phy` → PHYLIP, `.aln` → CLUSTAL, `.msf` → MSF, `.sto`/`.stockholm` → Stockholm, any other → FASTA)
-- FASTQ data is exported as FASTA (quality values are dropped)
+- Formats: FASTA, NEXUS, PHYLIP, CLUSTAL, MSF, Stockholm, FASTQ
+- The output format follows the file extension chosen in the save dialog (e.g., `.nexus`/`.nex` → NEXUS, `.phy` → PHYLIP, `.aln` → CLUSTAL, `.msf` → MSF, `.sto`/`.stockholm` → Stockholm, `.fastq`/`.fq` → FASTQ, any other → FASTA)
+- FASTQ input keeps its per-residue Phred quality scores, which are written back when saving as FASTQ (Phred+33); only the formats that have no quality field leave them unrepresented
 
 ---
 
@@ -345,7 +345,8 @@ All CLI commands accept `.gz` input and auto-detect the input format. `convert` 
 | Cmd+O | Open file |
 | Cmd+N | New window |
 | Cmd+T | New tab |
-| Cmd+W | Close window |
+| Cmd+W | Close tab |
+| Cmd+Shift+W | Close window |
 | Cmd+S | Save |
 | Cmd+Shift+S | Save As |
 | Cmd+Shift+E | Export preview |
@@ -361,7 +362,7 @@ All CLI commands accept `.gz` input and auto-detect the input format. `convert` 
 | Cmd+Shift+R | Rename sequence |
 | Cmd+F | Search |
 | Cmd+G | Find next |
-| Cmd+Shift+G | Toggle consensus track (View menu; the same combination is also registered as Find Previous in the Tools menu) |
+| Cmd+Shift+G | Toggle consensus row (View menu; the same combination is also registered as Find Previous in the Tools menu) |
 | Cmd+Shift+1 | Colour scheme: Minimal |
 | Cmd+Shift+2 | Colour scheme: ClustalX |
 | Cmd+Shift+3 | Colour scheme: Zappo |
@@ -382,18 +383,19 @@ All CLI commands accept `.gz` input and auto-detect the input format. `convert` 
 
 ## 18. Preferences
 
-Access via SeqAlignMac ▸ Settings… (Cmd+,).
+Access via SeqAlignMac ▸ Preferences… (Cmd+,).
 
 - **Appearance**: Light / Dark / System
-- **Default colour scheme**: Minimal, ClustalX, Zappo, SeaView, Default, Transition/Transversion
+- **Default colour scheme**: Minimal, ClustalX, Zappo, SeaView, Default, Transition/Transversion, Okabe-Ito (CVD-safe)
 - **Font size**: stepper from 8 to 28 pt (default 13)
-- **Show consensus**: toggle the consensus track
+- **Show consensus sequence**: toggle the consensus row
 - **High contrast**: enhanced readability mode
 - **Focus dim**: dim regions outside the selection
 - **ClustalX threshold**: conservation cut-off, slider 0.1–0.9 in steps of 0.05 (default 0.3)
-- **Consensus mode**: majority rule / identity thresholds
-- **Codon triplet display**: group nucleotide columns in triplets
-- **Language**: English / 简体中文 (applied immediately, no restart required)
+- **Consensus mode**: majority rule / IUPAC degenerate / strict
+- **External aligner timeout**: stepper from 30 to 3600 s in steps of 30 (default 300 s)
+
+Language is not a control in this panel: switch it via View ▸ Language (English / 简体中文); the change applies immediately, no restart required.
 
 ---
 
@@ -403,7 +405,7 @@ Access via SeqAlignMac ▸ Settings… (Cmd+,).
 - **Load Example**: opens a built-in example alignment for trying the features
 - **About**: version and project information
 
-The command palette (Cmd+Shift+P) offers fuzzy-searchable access to most commands, including the guide and example loader.
+The command palette (Cmd+Shift+P) narrows most commands by case-insensitive substring matching, including the guide and example loader.
 
 ---
 
@@ -417,6 +419,6 @@ The command palette (Cmd+Shift+P) offers fuzzy-searchable access to most command
 
 **Translation frame confusion**: Negative frames are on the reverse complement. Frame −1 starts from the first base of the reverse-complement sequence, −2 from the second, and so on.
 
-**External aligner (Run MSA) fails to start**: The preset commands require `mafft`, `muscle`, or `clustalw2` to be installed and on your `PATH`. Verify with `which mafft` in a terminal, or use the Custom preset with a full path.
+**External aligner (Run Alignment) fails to start**: The preset commands require `mafft`, `muscle`, or `clustalw2` to be installed and on your `PATH`. Verify with `which mafft` in a terminal, or use the Custom preset with a full path.
 
 **Unit tests cannot run locally**: `swift test` requires the XCTest module shipped with full Xcode. With only the Command Line Tools installed, `build.sh` skips the tests with a warning; CI performs the full run.

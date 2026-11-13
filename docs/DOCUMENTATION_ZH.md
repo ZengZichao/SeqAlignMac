@@ -513,7 +513,7 @@ Logo（720×400，`colsPerPage = 120`、截断提示、`maxBits` 2.0 / 4.3）、
 
 #### 6.2.16 `Sources/SettingsView.swift`（186 行）
 
-`AppSettings` 加上偏好设置表单（宽 480，minHeight 440 / maxHeight 560，标签宽 92）。实际清单（`:50-162`）：外观分段控件；配色方案菜单（7 项）；字号步进器 8…28 pt（`:84-90`）；显示共识序列 / 高对比模式 / 聚焦变暗三个开关（`:96-101`）；ClustalX 相似度滑块 0.1…0.9 步长 0.05，以百分比显示（`:114-129`）；共识模式菜单 majority / IUPAC / strict（`:134-138`）；外部比对器超时步进器 30…3600 s 步长 30，默认 300（`:16-22, 150-162`）。只有一个 `settingsDone` 按钮（`.defaultAction`）——没有 Escape。语言**不在**这里（它在 视图（View）▸ 语言（Language）以及侧栏按钮上）；"密码子三联体显示"选项也不存在（§15.2）。
+`AppSettings` 加上偏好设置表单（宽 480，minHeight 440 / maxHeight 560，标签宽 92）。实际清单（`:50-162`）：外观分段控件；配色方案菜单（7 项）；字号步进器 8…28 pt（`:84-90`）；显示共识序列 / 高对比模式 / 聚焦变暗三个开关（`:96-101`）；ClustalX 相似度滑块 0.1…0.9 步长 0.05，以百分比显示（`:114-129`）；共识模式菜单 majority / IUPAC / strict（`:134-138`）；外部比对器超时步进器 30…3600 s 步长 30，默认 300（`:16-22, 150-162`）。只有一个 `settingsDone` 按钮（`.defaultAction`）——没有 Escape。语言**不在**这里（它在 视图（View）▸ 语言（Language）以及侧栏按钮上）；"密码子三联体显示"选项也不存在：`settingsCodonTriplet` 键虽在，却没有任何读取点（§10.4、§15.1）。
 
 #### 6.2.17 `Sources/PrimerCalculatorView.swift`（500×460）
 
@@ -909,7 +909,7 @@ hasData   = readCount > 0                                     (:383)
 
 ### 8.7 香农熵与序列 logo
 
-`LogoCalculator`（`ColumnStats.swift:421-489`）实现了带小样本校正的信息含量，依据 `README.md:80`
+`LogoCalculator`（`ColumnStats.swift:421-489`）实现了带小样本校正的信息含量，依据 `README.md:82`
 与应用内说明（`Localization.swift:1640`），其文献出处 **Schneider & Stephens 1990** 记录在 `:421`：
 
 ```
@@ -1462,8 +1462,9 @@ row = floor((y − topBarHeight  − consensusHeight) / cellHeight)
 （`SeqAlignMacApp.swift:534-537`）、侧边栏的 `LanguageSwitchButton`
 （`LeftSidebarView.swift:192-200`），以及 `LanguageManager.toggle()`。
 
-需要注意，语言**不是**偏好设置项；把它列在 Preferences 之下的文档都是错的（§15.2）。`Info.plist`
-中没有 `CFBundleLocalizations`：这套双语 UI 是运行时切换的，不基于 `.lproj`。
+需要注意，语言**不是**偏好设置项；它的入口只有 视图（View）▸ 语言（Language）与侧栏按钮
+（§10.2）。`Info.plist` 中没有 `CFBundleLocalizations`：这套双语 UI 是运行时切换的，
+不基于 `.lproj`。
 
 ### 10.3 术语纪律
 
@@ -1478,9 +1479,9 @@ degenerate/简并（保持区分）· variable / parsimony-informative / singlet
 反向互补 · difference mode/差异模式 · focus dim/聚焦变暗 · melting temperature/熔解温度
 （Tm 保持原样）· neighbour-joining tree/邻接法系统发育树 · 短复合形式 neighbour-joining/NJ 树
 仅在引用界面标签时可用，正文一律使用术语表的长形 · nearest-neighbour (Tm, salt correction)/最近邻法——
-切勿写作 近邻法，它与 邻接法 在视觉上极易混淆 · sliding window/滑动窗口 · sequence logo/
+切勿写作 近邻法（裸形），它与 邻接法 在视觉上极易混淆 · sliding window/滑动窗口 · sequence logo/
 序列 Logo · annotation browser/注释浏览器 · command palette/命令面板 · frozen name column/名称列冻结 ·
-density-adaptive glyphs/密度自适应 · external aligner/外部比对器 · consensus row/共识行（显示中的那
+density-adaptive glyphs/密度自适应 · pill（范围切换控件）/胶囊 · external aligner/外部比对器 · consensus row/共识行（显示中的那
 一行；共识序列 指的是*序列*本身，是另一个对象）· sandbox/沙箱 · allow-list/允许清单 与
 whitelist/白名单——英文有意区分这两个词（allow-list 管的是 `Package.swift` 的 `sources` 与打开面板的
 扩展名，whitelist 指解析器的残基字符集），因此中文必须随它所面对的英文用词对应。
@@ -1888,8 +1889,8 @@ CLI 是受支持的接口，而不是调试后门：它的退出码与 CSV 列�
 4. `Tests/SeqAlignCoreTests/SeqAlignCoreTests.swift:634-686` —— 针对该表，对照官方
    `gc.prt` 的语义抽查被改动的密码子。
 5. 在计数被重复出现的地方一并更新：`README.md:8`、`MANUAL_EN.md:181`、
-   `MANUAL_ZH.md:181`，以及本文的 §8.11。按 §8.11 的裁定，这个计数是对**本代码库**的陈述——
-   英文 "17 NCBI genetic-code tables"，中文「17 张 NCBI 遗传密码表」——并不声称 NCBI 自己定义了多少
+   `MANUAL_ZH.md:183`，以及本文的 §8.11。按 §8.11 的裁定，这个计数是对**本代码库**的陈述——
+   英文 "17 NCBI genetic code tables"（连字符与否沿用所在文档的写法），中文「17 张 NCBI 遗传密码表」——并不声称 NCBI 自己定义了多少
    张表，因此不存在需要重新核实的外部分母。
 
 ### 14.4 新增本地化字符串
@@ -1953,32 +1954,22 @@ CLI 是受支持的接口，而不是调试后门：它的退出码与 CSV 列�
 
 ### 15.2 被代码推翻的文档表述
 
+一旦某个错误句子在它所在的文档里被改正，对应的行就被删除——所以下表中的任何文字都不得当作定义
+引用。剩下的是与代码矛盾、却无法从文档侧修复的 UI 字符串，以及任何文档都无法裁定的说法。
+
 | 错误表述（及其出现位置） | 代码的实际行为 |
 |---|---|
-| “通过列频方法计算平均成对一致度”（`README.md:74-79`；tooltip `statsMethodNote` 位于 `Localization.swift:1639, 1863`） | **按位点加权的池化一致度**，§8.2 |
-| “空位列 = 只含空位字符的列”／含空位列数（`MANUAL_EN.md:216`） | **无可归属残基**的列，包括全为 `N`/`X`/`?` 的列，§8.3 |
-| NJ“使用最前面的 200 条序列”（`README.md:79`、`MANUAL_EN.md:243`、`treeHint` `:1641/1865`） | 按**等间隔**采样至 200 条，已在 NHX 注释中披露，§8.8 |
-| 列一致度“排除空位”（`README.md:76`） | 分母**还**排除了未判定符号，且全为简并符号的列得分为 0，§8.1 |
-| “FASTQ 会以 FASTA 导出，质量信息被丢弃”（`MANUAL_EN.md:306`） | Phred+33 质量信息会被保留，§7.3 |
-| “`convert --format nexus\|phylip\|clustal\|msf\|stockholm\|fasta`”（`MANUAL_EN.md:333`） | `fastq` 实际上被接受，§13.1 |
-| 质量报告表单含有 GC 含量行以及变异位点／简约信息位点／单态位点行（`MANUAL_EN.md:214-221`） | 它两样都没有；这些指标只存在于统计面板和 CSV 中，§8.4、§6.2.14 |
-| 选项中的“高亮起始密码子／高亮终止密码子”、“密码子三联体显示”、“共识模式：多数规则／一致度阈值” | 翻译表单恰好只有一个开关（`translateNewWindow`）；不存在密码子三联体设置；三种模式是 多数／IUPAC／严格 |
-| “语言……位于偏好设置下”（`MANUAL_EN.md:396`） | 实际在 视图（View）▸ 语言（Language）以及侧栏按钮上，§10.2 |
-| 导出预览提供配色方案与字号（`MANUAL_EN.md:299`） | 它提供的是格式、仅导出选区、深色模式以及一个尺寸读数，§6.2.12 |
-| “可按类型、名称与坐标范围筛选的注释浏览”（`MANUAL_EN.md:287`） | 只有四列和每行的 Jump，**没有筛选器**，§6.2.15 |
-| 超时固定为“5 分钟”；在 4 个目录中搜索 PATH（`MANUAL_EN.md:271-276`） | 可在 30…3600 秒之间配置，默认 300；**六**个候选目录外加 `which`，§6.2.19 |
-| 命令面板“支持模糊搜索”（`MANUAL_EN.md:406`） | 子串匹配（`localizedCaseInsensitiveContains`），§6.2.20 |
-| “可处理多达约 10,000 条序列的比对”；“即将提供 .dmg 与 Homebrew cask”；第三方功能对比行 | 无法从本仓库验证——没有基准测试、没有制品、没有外部核对，§9.9 |
-| “Cmd+W 关闭窗口”（`MANUAL_EN.md:96, 348`） | ⌘W 关闭**标签页**；⇧⌘W 关闭窗口，§4.5 |
-| “App Store 构建会隐藏外部比对器入口”（`PRIVACY.md:49-51`） | 不存在任何运行期开关；只有签名期的 `SEQALIGN_SANDBOX` 权限，§12.5 |
-| “CI 会强制执行硬编码中文规则”（`CONTRIBUTING.md:34`） | `continue-on-error: true`，§12.7 |
-| “Xcode 15+”（`CONTRIBUTING.md:7`） | tools-version 6.0 与 CI 所隐含的下限是 Swift 6 工具链，§12.1 |
+| `statsMethodNote`，统计面板底部说明（`Localization.swift:1639, 1863`）："列一致度 = 主频残基占比（空位不计）；平均成对一致度 = 列频次法（空位位点不计）；变异/简约/单态位点按非空位残基统计" | 列一致度除以**信息位点数**，其中空位与未判定符号一并排除，且整列模糊的列得 0 分，§8.1；头条数值是**按位点加权的池化一致度**，§8.2；三个位点计数过滤的是 `unassignableStates`——那个更大的集合，§8.4 |
+| `treeHint`，NJ 对话框提示（`Localization.swift:1641, 1865`）："序列数 >200 时取前 200 条" | 按**等间隔**抽样，`step = count / maxSeqs`，§8.8；同族的 `samplingNote`（"……（等距抽样）"，`ColumnStats.swift:506`）才是正确的字符串 |
+| `statsGapCols`（"Gap columns" / 「含空位列数」，`Localization.swift:1516, 1739`） | 判定条件是**无可归属残基**，因此也涵盖整列为 `N`/`X`/`?` 的列——以及蛋白质下整列 `B` 或整列 `Z`，§8.3 |
+| "可处理多达约 10,000 条序列的比对"；"即将提供 .dmg 与 Homebrew cask"；第三方功能对比行 | 无法从本仓库验证——没有基准测试、没有制品、没有外部核对，§9.9 |
+| "CI 会检查视图层硬编码中文"（`CONTRIBUTING.md:34`） | 该 grep 作业确实存在，但带 `continue-on-error: true`，永远无法让构建失败，§12.7 |
 
 ### 15.3 并未实现的构建说法
 
 `Package.swift:29` 声称 CI 可以对 `sources` 允许清单做差异检查；**并不存在这样的 CI
 步骤**——仅有的 lint 任务是制品守卫和非阻塞的 CJK grep。后果是：新加入的核心文件仍可能在无人
-察觉的情况下完全没有测试，而 §14 的检查清单才是实际的控制手段。与此相关，`README.md:169`
+察觉的情况下完全没有测试，而 §14 的检查清单才是实际的控制手段。与此相关，`README.md:171`
 把 `./build.sh` 描述为“swift test → 编译 → ad-hoc 签名 → zip”，但本地测试闸门是尽力而为
 （§12.3，阶段 3.5）；`CONTRIBUTING.md:48` 的“本地 `swift test && ./build.sh` 必须通过”才是
 准确说法。
@@ -2123,9 +2114,11 @@ FASTQ），通用「另存为」面板提供五种扩展名，而写出器支持
 
 两个 Zenodo DOI 是*有意*并行使用的，凡引用都应明确标注：**概念 DOI**
 `10.5281/zenodo.23053513`（徽章；解析到最新发布版本）与**版本 DOI**
-`10.5281/zenodo.23053514`（`CITATION.cff`，带 `note = {v0.1.0}` 的 BibTeX 条目）。二者都无法在
-本仓库内部验证，因为 `.zenodo.json` 没有 DOI 字段。许可证：MIT（`LICENSE:3` 的版权行；SPDX id
-声明于 `CITATION.cff:14`、`.zenodo.json:10-12`、`README.md:183` 与 `Info.plist:26`）。
+`10.5281/zenodo.23053514`（`CITATION.cff:12-13`，以及 `README.md:106-114` 的 BibTeX 条目——后者带
+`note = {v0.1.0}`）。二者都无法在本仓库内部验证，因为 `.zenodo.json` 没有 DOI 字段。许可证：MIT。
+只有两个文件把许可证作为*数据*声明——`CITATION.cff:14`（`license: MIT`，即 SPDX id）与
+`.zenodo.json:10-12`（`license.name`）；`LICENSE:3`、`README.md:183` 与 `Info.plist:26` 的
+`NSHumanReadableCopyright` 只是以散文表述。
 
 ### 16.3 参考文献
 
@@ -2158,10 +2151,10 @@ FASTQ），通用「另存为」面板提供五种扩展名，而写出器支持
     （`AlignmentParsers.swift:531-578`）、FASTQ Phred+33/+64（SAM/BAM 规范，
     `AlignmentParsers.swift:249-260`）、gzip RFC 1952 与 BGZF（samtools）
     （`AlignmentParsers.swift:1186-1423`）、GFF3（Sequence Ontology）。
-11. BibTeX `@software` 条目与完整引用块：`README.md:104-164`；CITATION.cff 与
+11. BibTeX `@software` 条目与完整引用块：`README.md:105-166`；CITATION.cff 与
     `.zenodo.json` 如前所述。
 
-`README.md:84-97` 中的对比表（针对 Jalview、AliView 与 UGENE）是关于第三方软件的论断，无法从本
+`README.md:90-99` 中的对比表（针对 Jalview、AliView 与 UGENE）是关于第三方软件的论断，无法从本
 仓库验证；因此此处不予转载。
 
 ---

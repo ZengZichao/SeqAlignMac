@@ -857,7 +857,8 @@ font-size stepper 8…28 pt (`:84-90`); show consensus / high contrast / focus d
 consensus mode menu majority / IUPAC / strict (`:134-138`); external-aligner timeout stepper
 30…3600 s step 30 with default 300 (`:16-22, 150-162`). Only a `settingsDone` button
 (`.defaultAction`) — no Escape. Language is **not** here (it is View ▸ Language and the sidebar
-button); neither is a "codon triplet display" option (§15.2).
+button); neither is a "codon triplet display" option: the `settingsCodonTriplet`
+key exists but has no read site (§10.4, §15.1).
 
 #### 6.2.17 `Sources/PrimerCalculatorView.swift` (500×460)
 
@@ -1314,7 +1315,7 @@ panel, the quality sheet, and — only when quality data exists — the CSV fiel
 ### 8.7 Shannon entropy and the sequence logo
 
 `LogoCalculator` (`ColumnStats.swift:421-489`) implements information content with the
-small-sample correction, per `README.md:80` and the in-app note
+small-sample correction, per `README.md:82` and the in-app note
 (`Localization.swift:1640`), with the literature reference **Schneider & Stephens 1990**
 recorded at `:421`:
 
@@ -1912,9 +1913,9 @@ keyed on the language (`CommandPaletteView.swift:34, 73`). Entry points: View �
 中文/English (`SeqAlignMacApp.swift:534-537`), the sidebar `LanguageSwitchButton`
 (`LeftSidebarView.swift:192-200`), and `LanguageManager.toggle()`.
 
-Note that language is **not** a preferences control; documents that list it under Preferences are
-wrong (§15.2). `Info.plist` carries no `CFBundleLocalizations`: the bilingual UI is runtime-
-switched, not `.lproj`-based.
+Note that language is **not** a preferences control; the only entry points are View ▸ Language and
+the sidebar button (§10.2). `Info.plist` carries no `CFBundleLocalizations`: the bilingual UI is
+runtime-switched, not `.lproj`-based.
 
 ### 10.3 Terminology discipline
 
@@ -1931,7 +1932,7 @@ codon track/密码子轨道 · reverse complement/反向互补 · difference mod
 the *short* compound neighbour-joining/NJ 树 is fine when quoting a UI label, but prose uses the
 glossary form · nearest-neighbour (Tm, salt correction)/最近邻法 — never 近邻法, which collides
 visually with 邻接法 · sliding window/滑动窗口 · sequence logo/序列 Logo · annotation browser/注释浏览器 · command palette/
-命令面板 · frozen name column/名称列冻结 · density-adaptive glyphs/密度自适应 · external aligner/
+命令面板 · frozen name column/名称列冻结 · density-adaptive glyphs/密度自适应 · pill (the scope toggle)/胶囊 · external aligner/
 外部比对器 · consensus row/共识行 (the display row; 共识序列 is the *sequence*, a different object) ·
 sandbox/沙箱 · allow-list/允许清单 versus whitelist/白名单 — EN deliberately keeps these two
 distinct (an allow-list gates `Package.swift: sources` and the open-panel extensions; a whitelist
@@ -2390,9 +2391,10 @@ package and not covered by a single test** (`CONTRIBUTING.md:30`).
 4. `Tests/SeqAlignCoreTests/SeqAlignCoreTests.swift:634-686` — spot-check the changed codons
    against the official `gc.prt` semantics for that table.
 5. Update the count wherever it is repeated: `README.md:8`, `MANUAL_EN.md:181`,
-   `MANUAL_ZH.md:181`, and §8.11 here. As §8.11 rules, the count is a statement about **this
-   codebase** — EN "17 NCBI genetic-code tables", ZH 「17 张 NCBI 遗传密码表」 — and carries no claim
-   about how many tables NCBI itself defines, so there is no external denominator to re-check.
+   `MANUAL_ZH.md:183`, and §8.11 here. As §8.11 rules, the count is a statement about **this
+   codebase** — EN "17 NCBI genetic code tables" (hyphenation follows the host document), ZH 「17 张 NCBI
+   遗传密码表」 — and carries no claim about how many tables NCBI itself defines, so there is no external
+   denominator to re-check.
 
 ### 14.4 Adding a localised string
 
@@ -2459,33 +2461,24 @@ thing a reader could otherwise learn wrongly from an existing document.
 
 ### 15.2 Documentation statements that the code contradicts
 
+Rows are deleted as soon as the offending sentence is corrected in the document that carried it —
+so nothing below may be quoted as a definition. What remains are UI strings that contradict the
+code and cannot be fixed from the documentation, plus claims no document can settle.
+
 | Wrong statement (where it appears) | What the code does |
 |---|---|
-| "Mean pairwise identity via column-frequency method" (`README.md:74-79`; tooltip `statsMethodNote` at `Localization.swift:1639, 1863`) | **site-weighted pooled identity**, §8.2 |
-| "Gap columns = columns containing only gap characters" / 含空位列数 (`MANUAL_EN.md:216`) | columns with **no assignable residue**, including all-`N`/`X`/`?`, §8.3 |
-| NJ "the first 200 sequences are used" (`README.md:79`, `MANUAL_EN.md:243`, `treeHint` `:1641/1865`) | **equal-interval** sampling to 200, disclosed in the NHX comment, §8.8 |
-| Column identity "gaps excluded" (`README.md:76`) | the denominator **also** excludes undetermined symbols, and an all-ambiguous column scores 0, §8.1 |
-| "FASTQ is exported as FASTA, quality dropped" (`MANUAL_EN.md:306`) | Phred+33 quality is preserved, §7.3 |
-| "`convert --format nexus\|phylip\|clustal\|msf\|stockholm\|fasta`" (`MANUAL_EN.md:333`) | `fastq` is accepted, §13.1 |
-| Quality sheet has a GC-content row and variable/parsimony/singleton rows (`MANUAL_EN.md:214-221`) | it has neither; those live in the stats panel and the CSV, §8.4, §6.2.14 |
-| Options "highlight start codons / highlight stop codons"; "codon triplet display"; "consensus mode: majority rule / identity thresholds" | the translation sheet has exactly one toggle (`translateNewWindow`); no codon-triplet setting exists; the three modes are majority / IUPAC / strict |
-| "Language … under Preferences" (`MANUAL_EN.md:396`) | View ▸ Language and the sidebar button, §10.2 |
-| Export preview offers colour scheme and font size (`MANUAL_EN.md:299`) | it offers format, selection-only, dark mode, and a size readout, §6.2.12 |
-| "annotation browsing filtered by type, name, and coordinate range" (`MANUAL_EN.md:287`) | four columns and a per-row Jump, **no filters**, §6.2.15 |
-| "timeout (5 min)" fixed; PATH search over 4 directories (`MANUAL_EN.md:271-276`) | configurable 30…3600 s, default 300; **six** candidate directories plus `which`, §6.2.19 |
-| palette is "fuzzy-searchable" (`MANUAL_EN.md:406`) | substring match (`localizedCaseInsensitiveContains`), §6.2.20 |
+| `statsMethodNote`, the stats-panel footer (`Localization.swift:1639, 1863`): "column identity = fraction of the most frequent residue (gaps excluded); mean pairwise identity via column-frequency method (gap sites excluded); variable/parsimony/singleton sites on non-gap residues" | column identity divides by **informative sites**, which exclude gaps *and* undetermined symbols, and an all-ambiguous column scores 0, §8.1; the headline figure is **site-weighted pooled identity**, §8.2; the three site counts filter `unassignableStates`, the larger set, §8.4 |
+| `treeHint`, the NJ dialog hint (`Localization.swift:1641, 1865`): "first 200 sequences if >200" | **equal-interval** sampling, `step = count / maxSeqs`, §8.8; the sibling string `samplingNote` ("… (even sampling)", `ColumnStats.swift:506`) is the correct one |
+| `statsGapCols` ("Gap columns" / 「含空位列数」, `Localization.swift:1516, 1739`) | the predicate is **no assignable residue**, which also covers an all-`N`/`X`/`?` column — and an all-`B` or all-`Z` column for protein, §8.3 |
 | "handles alignments up to ~10,000 sequences"; ".dmg and Homebrew cask forthcoming"; third-party feature-comparison rows | unverifiable from this repository — no benchmark, no artefact, no external check, §9.9 |
-| "Cmd+W closes the window" (`MANUAL_EN.md:96, 348`) | ⌘W closes the **tab**; ⇧⌘W closes the window, §4.5 |
-| "the App Store build hides the external aligner entry" (`PRIVACY.md:49-51`) | no runtime switch exists; only the signing-time `SEQALIGN_SANDBOX` entitlement, §12.5 |
-| "CI enforces the hardcoded-Chinese rule" (`CONTRIBUTING.md:34`) | `continue-on-error: true`, §12.7 |
-| "Xcode 15+" (`CONTRIBUTING.md:7`) | the floor implied by tools-version 6.0 and CI is the Swift 6 toolchain, §12.1 |
+| "CI checks the view layer for hardcoded Chinese" (`CONTRIBUTING.md:34`) | the grep job exists but is `continue-on-error: true`, so it can never fail a build, §12.7 |
 
 ### 15.3 Claims about the build that are not implemented
 
 `Package.swift:29` states that CI can diff-check the `sources` allow-list; **no such CI step
 exists** — the only lint jobs are the artefact guard and the non-blocking CJK grep. Consequence:
 a newly added core file can still be silently untested, and §14's checklist is the actual control.
-Relatedly, `README.md:169` describes `./build.sh` as "swift test → compile → ad-hoc sign → zip",
+Relatedly, `README.md:171` describes `./build.sh` as "swift test → compile → ad-hoc sign → zip",
 but the local test gate is best-effort (§12.3, stage 3.5); `CONTRIBUTING.md:48`'s "local
 `swift test && ./build.sh` must pass" is the accurate phrasing.
 
@@ -2644,10 +2637,12 @@ only on `main`.
 
 Two Zenodo DOIs are in circulation *by design* and should be labelled explicitly wherever quoted:
 the **concept DOI** `10.5281/zenodo.23053513` (badge; resolves to the newest release) and the
-**version DOI** `10.5281/zenodo.23053514` (`CITATION.cff`, BibTeX entry with `note = {v0.1.0}`).
-Neither can be verified from inside this repository, because `.zenodo.json` has no DOI field.
-Licence: MIT (`LICENSE:3` copyright line; the SPDX id is declared in `CITATION.cff:14`,
-`.zenodo.json:10-12`, `README.md:183`, and `Info.plist:26`).
+**version DOI** `10.5281/zenodo.23053514` (`CITATION.cff:12-13`, and the BibTeX entry at
+`README.md:106-114`, which carries `note = {v0.1.0}`). Neither can be verified from inside this
+repository, because `.zenodo.json` has no DOI field. Licence: MIT. Only two files declare it *as
+data* — `CITATION.cff:14` (`license: MIT`, which is the SPDX id) and `.zenodo.json:10-12`
+(`license.name`); `LICENSE:3`, `README.md:183` and the `NSHumanReadableCopyright` string at
+`Info.plist:26` state it in prose only.
 
 ### 16.3 References
 
@@ -2682,10 +2677,10 @@ implementation depends on:
     (`AlignmentParsers.swift:531-578`), FASTQ Phred+33/+64 (SAM/BAM specification,
     `AlignmentParsers.swift:249-260`), gzip RFC 1952 and BGZF (samtools)
     (`AlignmentParsers.swift:1186-1423`), GFF3 (Sequence Ontology).
-11. BibTeX `@software` entry and full reference block: `README.md:104-164`; CITATION.cff and
+11. BibTeX `@software` entry and full reference block: `README.md:105-166`; CITATION.cff and
     `.zenodo.json` as above.
 
-The comparison table in `README.md:84-97` (against Jalview, AliView, and UGENE) is a claim about
+The comparison table in `README.md:90-99` (against Jalview, AliView, and UGENE) is a claim about
 third-party software and cannot be verified from this repository; it is therefore not reproduced
 here.
 
