@@ -4,7 +4,7 @@
 
 ## 环境要求
 
-- macOS 14+ 与 Xcode 15+（或含 XCTest 的完整 Command Line Tools）
+- macOS 14+ 与 Xcode 16（或含 XCTest 且提供 Swift 6.0 工具链的完整 Command Line Tools）
 - Swift 6 工具链（`Package.swift` 声明 swift-tools-version 6.0）
 
 ## 构建与运行
@@ -48,7 +48,7 @@ swift test
 2. 本地 `swift test && ./build.sh` 通过。
 3. 提交信息用祈使句、说清"为什么"；一个提交只做一件事。
 4. 开 Pull Request，描述动机、改动范围、测试情况，关联相关 Issue。
-5. 等待 CI（`swift test` + `swift build -c release` + `build.sh`）转绿并获维护者 review。
+5. 等待 CI（`swift test` + `swift build -c release` + `build.sh`）转绿并通过维护者评审。
 
 ## 行为准则
 

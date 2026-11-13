@@ -3,9 +3,9 @@
 ![CI](https://img.shields.io/github/actions/workflow/status/zengzichao/SeqAlignMac/ci.yml?branch=main&label=CI&style=flat-square)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23053513.svg)](https://doi.org/10.5281/zenodo.23053513)
 
-SeqAlignMac 是一款 macOS 原生多序列比对（MSA）查看与编辑器，使用 Swift 和 SwiftUI 构建。与 Jalview、AliView 等基于 Java 的桌面工具不同，SeqAlignMac 面向 macOS 14+ 原生设计，提供极简的黑白配色界面、色觉无障碍（Okabe-Ito 色板）、中英双语界面切换，以及用于批量处理的无界面命令行接口。
+SeqAlignMac 是一款 macOS 原生多序列比对（MSA）查看、编辑与分析应用，使用 Swift 编写，在 SwiftUI 外壳中承载 AppKit Core Text 画布，提供极简、无干扰的黑白配色界面与完整的键盘导航。与 Jalview、AliView 等基于 Java 的桌面工具不同，SeqAlignMac 面向 macOS 14+ 从零开始设计，带来原生 Apple 体验，内置色觉无障碍支持（Okabe-Ito 色板）、中英双语界面切换，以及用于在可复现流程中批量处理的无界面命令行接口。
 
-应用支持七种比对格式的读写（FASTA、FASTQ、NEXUS、PHYLIP、CLUSTAL、MSF、Stockholm），可直接打开 .gz 压缩文件。提供六阅读框翻译（NCBI 现行 27 张遗传密码表中的 17 张）、近邻法引物 Tm 计算（SantaLucia 1998）、邻接法系统发育树（Saitou & Nei 1987）、序列 Logo（Schneider & Stephens 1990）、列级质量统计、IUPAC 简并引物分析，以及 PNG/PDF/SVG 矢量导出。纯逻辑核心库 `SeqAlignCore` 与渲染层解耦，包含 110 个单元测试：七种解析器往返、引物热力学、翻译、撤销/重做、搜索、统计，以及覆盖格式边界情形的回归套件。
+应用支持七种比对格式的读写（FASTA、FASTQ、NEXUS、PHYLIP、CLUSTAL、MSF、Stockholm），可直接打开 .gz 压缩文件。提供六阅读框翻译（NCBI 现行 27 张遗传密码表中的 17 张）、近邻法引物 Tm 计算（SantaLucia 1998）、邻接法系统发育树（Saitou & Nei 1987）、序列 Logo（Schneider & Stephens 1990）、列级质量统计、IUPAC 简并引物分析，以及 PNG/PDF/SVG 矢量导出。纯逻辑核心库 `SeqAlignCore` 与渲染层解耦，包含 110 个单元测试：七种解析器往返、引物热力学、翻译、撤销/重做、搜索、统计，以及覆盖格式边界情形（FASTQ 保留质量值的写出、gzip 压缩/解压往返、IUPAC/严格共识模式，以及 PHYLIP 顺序/交错变体）的回归套件。
 
 ## 目录
 
@@ -19,20 +19,21 @@ SeqAlignMac 是一款 macOS 原生多序列比对（MSA）查看与编辑器，�
 - [许可证](#许可证)
 - [分发](#分发)
 - [文档](#文档)
+
 ## 功能
 
 - **格式读写**：FASTA / FASTQ / NEXUS / PHYLIP / CLUSTAL / MSF / Stockholm（Pfam/Rfam 标准）导入与导出；.gz 压缩文件（含 bgzip 多成员）直接打开；支持换行续行的 PHYLIP 顺序格式与按 taxon 聚合的 NEXUS 交错格式；畸形输入显式报错而非静默截断。
-- **可视化**：七种配色方案（极简 / 默认 / ClustalX / Zappo / SeaView / 过渡颠换 / Okabe-Ito 色觉无障碍）、共识序列轨道、保守度轨道、参考序列差异模式。
+- **可视化**：七种配色方案（极简单色 / 默认核苷酸 / ClustalX / Zappo / SeaView / 过渡/颠换 / Okabe-Ito 色觉无障碍）、共识序列轨道、保守度轨道、参考序列差异模式。
 - **大数据渲染**：仅绘制可视区域的虚拟化画布；横向滚动时序列名称列固定显示；细滚动条常驻可见可拖拽；字形按密度自适应（列宽可读时绘制字母，过窄时仅显示色块）；列统计在后台线程计算，超大比对打开不阻塞界面。
-- **分析**：比对质量统计、序列 Logo（信息含量）、邻接法系统发育树（Newick 导出）、滑动窗口一致度、六阅读框翻译（NCBI 现行 27 张遗传密码表中的 17 张）、引物 Tm/GC/二聚体（盐浓度可配置）、GFF3 注释浏览与坐标跳转。
+- **分析**：比对质量统计、序列 Logo（信息含量）、邻接法系统发育树（Newick 导出）、滑动窗口一致度、六阅读框翻译（17 张 NCBI 遗传密码表）、引物 Tm/GC/二聚体（盐浓度可配置）、GFF3 注释浏览器与坐标跳转。
 - **工具**：IUPAC 简并搜索（支持正则）、撤销/重做、命令面板、多标签页、PNG/PDF/SVG 矢量导出、无界面命令行。
 - **FASTQ 质量**：Phred 质量值参与统计（平均 Phred、Q20/Q30 占比）。
 - **双语**：英文与简体中文界面，运行时可切换。
-- **外部比对**：MAFFT（stdout 直读）、MUSCLE v5、ClustalW2 预设；大输出并发排空管道防死锁，结果格式自动检测。
+- **外部比对器**：MAFFT（stdout 直读）、MUSCLE v5、ClustalW2 预设；大输出并发排空管道防死锁，结果格式自动检测。
 
 ## v0.1.0 变更（2026-09）
 
-首次公开发布。SeqAlignMac 是一款 macOS 原生多序列比对（MSA）查看与编辑器，使用 Swift 和 SwiftUI 构建。
+首次公开发布。SeqAlignMac 是一款 macOS 原生多序列比对（MSA）查看、编辑与分析应用，使用 Swift 编写，在 SwiftUI 外壳中承载 AppKit 画布。
 
 ## 快速开始
 
@@ -57,11 +58,11 @@ SeqAlignMac.app/Contents/MacOS/SeqAlignMac cli convert alignment.fasta --format 
 git clone https://github.com/zengzichao/SeqAlignMac.git
 cd SeqAlignMac
 ./build.sh        # swift test（领域层单元测试）→ swiftc 编译 .app → ad-hoc 签名 → 打包 zip
-./build.sh --skip-tests   # CI 复用：跳过 swift test（CI 已单独跑过）
+./build.sh --skip-tests   # 跳过 swift test（CI 中已单独执行）
 ./build.sh --open         # 构建后直接启动应用
 ```
 
-构建后的应用程序位于 `SeqAlignMac.app`，同时生成可分发的 `SeqAlignMac.app.zip`。设置 `DEVELOPER_ID` 环境变量可用开发者证书签名（启用强化运行时，便于公证）；未设置时使用 ad-hoc 签名兜底。
+构建后的应用程序位于仓库根目录下的 `SeqAlignMac.app`，同时生成可分发的 `SeqAlignMac.app.zip`。
 
 ### 仅运行测试
 
@@ -78,7 +79,7 @@ swift test        # 仅运行 SeqAlignCore 单元测试
 | 变异/简约/单态位点 | 按非空位残基统计：&ge;2 种残基 / &ge;2 种且每种 &ge;2 条 / 仅 1 条不同 |
 | NJ 树 | Saitou & Nei 1987；距离为未校正 p-distance（成对比较仅计双方均非空位位点）；>200 条取前 200 条 |
 | 序列 Logo | Schneider & Stephens 1990：R(l) = log<sub>2</sub>K &minus; (H(l) + e(n))，e(n) = (K&minus;1)/(2&middot;ln2&middot;n) 小样本校正；空位不计 |
-| 引物 Tm | SantaLucia 1998 统一近邻参数 + 末端校正；盐校正 von Ahsen 1999；Na<sup>+</sup>/Mg<sup>2+</sup>/寡链浓度均可在界面配置 |
+| 引物 Tm | SantaLucia 1998 统一近邻参数 + 末端校正；盐校正沿用 von Ahsen 等人（1999）；Na<sup>+</sup>/Mg<sup>2+</sup>/寡链浓度均可在界面配置 |
 | Okabe-Ito 色板 | Wong 2011, *Nature Methods*，对红绿色盲友好 |
 
 ## 功能对比
@@ -166,9 +167,15 @@ swift test        # 仅运行 SeqAlignCore 单元测试
 ## 构建与测试
 
 ```bash
-./build.sh        # swift test（领域层单元测试）→ 编译 .app → 打包 zip
+./build.sh        # swift test（领域层单元测试）→ swiftc 编译 → ad-hoc 签名 → 打包 zip
+./build.sh --skip-tests   # 跳过 swift test（CI 中已单独执行）
 swift test        # 仅运行 SeqAlignCore 单元测试
 ```
+
+设置 `DEVELOPER_ID` 环境变量可用开发者 ID 证书签名（启用强化运行时）；未设置时使用 ad-hoc 签名兜底。可选的分发开关：
+
+- `SEQALIGN_SANDBOX=1` — 打入 Mac App Store 的 App 沙盒 entitlements（`SeqAlignMac.entitlements`）。
+- `NOTARY_PROFILE=<profile>` — 在完成 Developer ID 签名之后，用 `notarytool` 提交已构建的 zip 并用 `stapler` 装订（需先运行一次 `xcrun notarytool store-credentials …` 存好凭据）。
 
 ## 许可证
 
@@ -176,10 +183,18 @@ MIT 许可证，详见 [LICENSE](LICENSE) 文件。
 
 ## 分发
 
-macOS 14+，源码构建（SwiftPM）。预编译 .dmg 与 Homebrew cask 即将推出。
+macOS 14+。两个发布渠道，仅有一项功能差异：
+
+- **GitHub Releases / Developer ID（直接下载）：** 非沙盒构建——**保留**外部比对器（MAFFT / MUSCLE / ClustalW2）功能；随附 Developer ID 签名 + 公证一并分发，以便 Gatekeeper 放行。
+- **Mac App Store：** 必须运行在 App 沙盒（App Sandbox）内，而沙盒**禁止启动用户自行安装的外部可执行文件**——因此 App Store 版本不含外部比对器功能。其余功能（查看、编辑、分析、翻译、统计、导出、撤销/重做，均不依赖 CLI）完全一致。
+
+预编译的 `.dmg` 与 Homebrew cask 即将推出。另见 [`PRIVACY.md`](PRIVACY.md)、[`SECURITY.md`](SECURITY.md) 与 [`CONTRIBUTING.md`](CONTRIBUTING.md)。
 
 ## 文档
 
+- [文档索引](docs/README.md) — `docs/` 目录下持续维护的文档总览
+- [使用指南](docs/USAGE_ZH.md) / [Usage Guide](docs/USAGE.md) — 任务导向的使用说明
+- [项目说明文档](docs/DOCUMENTATION_ZH.md) / [Project Documentation](docs/DOCUMENTATION.md) — 架构、格式、指标与构建门禁
 - [英文用户手册](MANUAL_EN.md) — 详细使用指南与工作流示例
-- [中文用户手册](MANUAL_ZH.md) — 详细使用说明
-- [English README](README.md) — English quick-start guide
+- [中文用户手册](MANUAL_ZH.md) — 详细用户手册
+- [English README](README.md) — 英文快速开始指南

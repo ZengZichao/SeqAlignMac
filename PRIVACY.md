@@ -35,7 +35,7 @@ analysis, translation and export happen entirely on your device. The app has **n
 由于不收集任何个人数据，服务端不存在需要保留或删除的数据。卸载应用即移除全部本机构建与偏好数据；
 在 macOS「系统设置 ▸ 隐私与安全」中也可清除应用的相关权限与数据。
 
-## Mac App Store 隐私"营养标签"
+## Mac App Store 隐私「营养标签」
 
 在 App Store Connect 中，本应用应申报为：
 
