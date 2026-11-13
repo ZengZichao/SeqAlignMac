@@ -135,7 +135,7 @@ hardened runtime 与 app-sandbox 权限默认*不*启用；沙箱需要在签名
    就绪。也可以把文件拖到窗口上，或运行
    `open -a SeqAlignMac alignment.fasta`。
 2. **查看画布。** 冻结的名称列在左侧，顶部是一条细窄的保守度轨道，其下是列标尺，然后是残基网格，
-   共识序列行位于标尺下方。右侧面板已经显示实时统计；底部状态栏显示序列数、列数、光标位置、
+   共识行位于标尺下方。右侧面板已经显示实时统计；底部状态栏显示序列数、列数、光标位置、
    光标下的残基、列一致度和数据类型。
 3. **滚动。** 使用始终可见的横向与纵向滚动条，或者使用滚轮。向右滚动时，序列名称保持在左侧固定。
 4. **选择区域。** 在单元格上拖动可建立矩形选区，或按住 ⌥ 拖动可整列选择。按 Esc 清除选区。
@@ -262,9 +262,9 @@ match the residue line" 以及 "no records parsed" 这类信息。因此一个�
   窗口（Window）、注释（Annot）；配色方案（Color Scheme）选择器、差异（Diff）开关、搜索（Search）、
   撤销（Undo）、重做（Redo）、缩放控件；导出（Export）▸ 序列（Sequence）/图像（Image）；
   底部是设置（Settings）、命令（Command）、外观（Appearance）与语言（Language）按钮。对于蛋白数据，
-  **翻译（Translate）** 与 **引物（Primer）** 会被禁用，工具提示为 "Only applicable to nucleotide
-  sequences"。
-- **中央画布**：冻结的名称列、保守度轨道、列标尺、残基网格，以及共识序列行。
+  **翻译（Translate）** 与 **引物（Primer）** 会被禁用，工具提示为「仅适用于核酸序列」（"Only applicable to nucleotide
+  sequences"）。
+- **中央画布**：冻结的名称列、保守度轨道、列标尺、残基网格，以及共识行。
 - **右侧统计面板**（默认 264 pt，限定在 220–460 pt）：实时的质量、系统发育和保守度指标，共识序列，
   光标信息，以及指标定义脚注。
 
@@ -816,11 +816,11 @@ SeqAlignMac 自身不执行序列比对。它调用本地的命令行比对器�
 成功时，新窗口的标题为 `<your file name> (aligned)`；若结果来自标准输出、没有涉及任何文件名，
 标题则为 `alignment_result.fasta`；这些后缀在设计上只有英文形式。
 
-### 10.6 关于沙盒构建的说明
+### 10.6 关于沙箱构建的说明
 
-没有任何运行时开关会隐藏这个功能。只有签名期选项 `SEQALIGN_SANDBOX=1` 才会附加应用沙盒权限，
-而沙盒化的构建无法执行用户提供的可执行文件——这正是 Mac App Store 风格的构建会失去外部比对能力的
-原因。你自己构建出的发行版默认不带沙盒，所以该功能是可用的。
+没有任何运行时开关会隐藏这个功能。只有签名期选项 `SEQALIGN_SANDBOX=1` 才会附加应用沙箱权限，
+而沙箱化的构建无法执行用户提供的可执行文件——这正是 Mac App Store 风格的构建会失去外部比对能力的
+原因。你自己构建出的发行版默认不带沙箱，所以该功能是可用的。
 
 ---
 
@@ -1064,7 +1064,7 @@ CSV 字段，按顺序（`metric,value`；只有当值含有逗号、引号或�
 | `pooled_identity_site_weighted` | 池化一致度（位点加权），0–1，四位小数——见 9.1；这不是成对均值 |
 | `declared_aligned` | 来源信息：`aligned`、`unknown` 或 `not-aligned` |
 | `mean_column_identity` | 各列一致度值的算术平均，0–1 |
-| `min_column_identity`、`max_column_identity` | 最佳／最差列，在信息列上统计（不存在信息列时为 0） |
+| `min_column_identity`、`max_column_identity` | 最差／最佳列，在信息列上统计（不存在信息列时为 0） |
 | `gap_columns` | 没有任何可判定残基的列（全空位**或**全未判定） |
 | `total_columns` | 列数 |
 | `variable_sites`、`parsimony_informative_sites`、`singleton_sites` | 9.1 中定义的各类位点计数 |

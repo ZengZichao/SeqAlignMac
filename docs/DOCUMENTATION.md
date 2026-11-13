@@ -244,34 +244,39 @@ would fail `swift build`/`swift test` — including on CI, where the tests are m
 |---|---|---|
 | Scene graph, menus, keyboard shortcuts | `SeqAlignMacApp.swift:34-45, 424-569` | `WindowGroup`, not `DocumentGroup`; one `SeqAlignCommands: Commands` tree. |
 | Per-tab view model | `Workspace: ObservableObject` (`SeqAlignMacApp.swift:103-322`) | Holds the shared `Alignment` plus every view state. |
-| Window/tab routing | `WindowRegistry.shared` (`SeqAlignMacApp.swift:324-420`) | §4.6. |
+| Window/tab routing | `WindowRegistry.shared` (`SeqAlignMacApp.swift:324-420`) | §4.5. |
 | Text rendering | `AlignmentCanvasView.swift` (AppKit `NSView` + Core Text) | §9. |
 | Palette (index → `NSColor`) | `ColorSchemes.swift` (`ColorResolver`, 7 palettes, per-appearance variants) | Light+dark variants for `minimal`, `defaultNucleotide`, `transitionTransversion`, `okabeIto`; `clustalX`/`zappo`/`seaView` are appearance-invariant so screenshots stay comparable with the reference tools. |
 | Off-screen render geometry | `AlignmentRenderer.swift`, `ExportManager.swift` | Reuses the canvas geometry so exported images match the screen. |
-| Subprocess plumbing | `ExternalAlignerView.swift` | §15.4, §6.19. |
+| Subprocess plumbing | `ExternalAlignerView.swift` | §15.4, §6.2.19. |
 | Localisation table | `Localization.swift` | §10. |
 | Preferences | `SettingsView.swift` (+ `AppSettings`) | §11. |
 
 ### 4.4 Notification-based menu-to-view bridging
 
 `WindowGroup` commands are **global**, but every interesting piece of state is **per tab**. The
-bridge is a set of 18 `Notification.Name`s declared at `SeqAlignMacApp.swift:1425-1445`
-(`showSettings`, `showAbout`, `showGuide`, `showPrimer`, `showTranslate`, `showLogo`,
-`showTree`, `showWindowChart`, `showAnnotation`, `renameSeq`, `moveSeq`,
-`removeSelectedSeq`, `runAlignment`, `showExportPreview`, `showCommandPalette`,
-`qualityReport`, `toggleSearch`, and `languageChanged` from `Localization.swift:1928`).
+bridge is a set of 18 `Notification.Name`s declared at `SeqAlignMacApp.swift:1426-1443`
+(`removeSelectedSeq`, `reverseComplement`, `insertGap`, `renameSeq`, `moveSeq`, `runAlignment`,
+`showPrimer`, `showSettings`, `showTranslate`, `showAbout`, `showGuide`, `showQualityReport`,
+`showCommandPalette`, `showExportPreview`, `pasteFromClipboard`, `tabStateChanged`,
+`tabDataChanged`, and `lastTabClosed`), plus `languageChanged` from `Localization.swift:1928`.
+The four names `tabStateChanged`, `tabDataChanged`, `lastTabClosed`, and `languageChanged` are
+consumed by the window root with `.onReceive` (`TabbedWindow.swift:160-173`); the other fifteen
+are consumed per tab by `ContentView`.
 
-A menu button posts; each `ContentView` observes with `.onReceive` (13 blocks in
-`ContentView+Actions.swift`) and **every handler opens with the same guard**:
+A menu button posts; each `ContentView` observes through a private `observe(_:_:)` wrapper around
+`NotificationCenter.addObserver(forName:object:queue:using:)` that collects the tokens (defined at
+`ContentView+Actions.swift:17`, **15 call sites** at `:20-108`), and **every handler opens with the
+same guard**:
 
 ```swift
 guard isActiveWorkspace() else { return }   // WindowRegistry.shared.activeForAction === workspace
 ```
 
 Because a `ContentView` exists for every open tab, an unguarded handler would open a sheet in
-a background window; the guard plus token removal in `onDisappear`
-(`ContentView+Actions.swift:113`) is what makes the fan-out safe. Menu enablement state and
-re-localisation use a second trick: `SeqAlignCommands.body` *reads* `registry.editRevision`
+a background window; the guard (`ContentView+Actions.swift:113-115`) plus the token teardown in
+`onDisappear` (`ContentView.swift:118-124`) is what makes the fan-out safe. Menu enablement
+state and re-localisation use a second trick: `SeqAlignCommands.body` *reads* `registry.editRevision`
 and `lang.language` inside `body` (`SeqAlignMacApp.swift:430-431`), so SwiftUI invalidates the
 menu tree when either changes (undo/redo greying, language switching at runtime).
 
@@ -721,9 +726,10 @@ silently becomes `defaultNucleotide` (raw value 0).
 #### 6.2.2 `Sources/ContentView.swift` + `Sources/ContentView+Actions.swift`
 
 The per-window root layout: sidebar | centre panel | stats panel, with `PanelResizer`
-boundaries (`ContentView.swift:55-101`) and the `.onDrop` handler. `+Actions` holds the 13
-`.onReceive` notification handlers (each guarded by `isActiveWorkspace()`, token teardown at
-`:113`), the sort actions (background Schwartzian transform with a `revision` re-check and
+boundaries (`ContentView.swift:55-101`) and the `.onDrop` handler. `+Actions` holds the 15
+notification handlers registered through its private `observe(_:_:)` wrapper (each guarded by
+`isActiveWorkspace()`, `:113-115`; token teardown in `ContentView.swift:118-124`), the sort actions
+(background Schwartzian transform with a `revision` re-check and
 `attempts: 2` retry, `:163-266`), paste handling (`:340-379`), the gap-column removal commands
 (`removeGapColumns(threshold: 1.0 / 0.5)`, and its own gap-counting loop at `:322-334`), and
 three inline zh/en string branches (`:247, 258, 368`, §10.4). Known defect:
@@ -742,8 +748,9 @@ bar's charset count uses a **hard-coded English label `"Charset"`** (`:384`).
 
 The only toolbar in the app, in five groups (File / Analysis / View / Export / System). Scheme
 picker over all 7 schemes (`:245-296`), sequence export offering six formats — **no FASTQ**
-(`:347-358`), appearance and language buttons (`:192-200`), and nucleotide-only disabling of
-Translate/Primer (`:78, 84`).
+(`:347-358`), appearance and language buttons (`:192-200`). Translate and Primer are the only
+buttons additionally disabled for protein data (`:78, 84`); every data-dependent button is disabled
+when no alignment is loaded (`:58, 72, 90-114, 136, 149`).
 
 #### 6.2.5 `Sources/TabbedWindow.swift` (450 lines)
 
@@ -1109,9 +1116,11 @@ not decompressed.
   10-byte header `1F 8B 08 00 00 00 00 00 00 FF` plus a CRC32 + ISIZE little-endian trailer; CRC
   polynomial `0xEDB88320` (`:1364-1376`). Saving a document whose source was `.gz` re-compresses
   in place (`SeqAlignMacApp.swift:890-893, 924-931`); "Save As" clears
-  `sourceIsCompressed`, so the copy is uncompressed (`:940`). `cli convert`/`export` re-compress
-  when the *output* extension is `.gz` (`CLIRunner.swift:284-294`,
-  `SeqAlignMacApp.swift:913-954`).
+  `sourceIsCompressed`, so the copy is uncompressed (`:940`). `cli convert`/`export` never
+  compress: they write the serialised bytes as they are (`CLIRunner.swift:109, 170, 233`), and the
+  only gzip decision on the CLI side is *input* gunzip, selected by the input file's extension
+  (`:284-294`) — the app-side path at `SeqAlignMacApp.swift:913-954` likewise keys off
+  `sourceIsCompressed`, never off an output extension.
 * Buffer sizing: deflate starts at `max(input + input/1000 + 64, 64 KB)` with 6 quadrupling
   retries (`:1379-1400`); inflate at `max(input × 8, 64 KB)` with 8 retries (`:1402-1422`).
 
@@ -1914,15 +1923,19 @@ record for the docs set. The load-bearing pairs:
 colour scheme/配色方案 · conservation (threshold)/
 保守度（阈值） · column identity/列一致度 · **pooled identity (site-weighted)/池化一致度（位点加权）**
 · consensus sequence/共识序列 · consensus mode/共识模式 (majority rule / IUPAC degenerate / strict
-= 多数规则 / IUPAC 简并 / 严格共识) · gap column / 无评分列 (the current label 含空位列数 is
-misleading, §8.3) · all-gap columns/全空位列 · high-gap columns (>50 %)/空位富集列 · gap trimming/
+= 多数规则 / IUPAC 简并 / 严格共识) · gap column / 空位列 (the stats panel's own label 含空位列数 is misleading, §8.3) · all-gap columns/全空位列 · high-gap columns (>50 %)/空位富集列 · gap trimming/
 空位精简 · undetermined/未判定 versus degenerate/简并 (kept distinct) · variable /
 parsimony-informative / singleton site/变异位点 · 简约信息位点 · 单态位点 · reading frame/阅读框 ·
 codon track/密码子轨道 · reverse complement/反向互补 · difference mode/差异模式 · focus dim/
 聚焦变暗 · melting temperature/熔解温度 (Tm as-is) · neighbour-joining tree/邻接法系统发育树 ·
-sliding window/滑动窗口 · sequence logo/序列 Logo · annotation browser/注释浏览器 · command palette/
+the *short* compound neighbour-joining/NJ 树 is fine when quoting a UI label, but prose uses the
+glossary form · nearest-neighbour (Tm, salt correction)/最近邻法 — never 近邻法, which collides
+visually with 邻接法 · sliding window/滑动窗口 · sequence logo/序列 Logo · annotation browser/注释浏览器 · command palette/
 命令面板 · frozen name column/名称列冻结 · density-adaptive glyphs/密度自适应 · external aligner/
-外部比对器.
+外部比对器 · consensus row/共识行 (the display row; 共识序列 is the *sequence*, a different object) ·
+sandbox/沙箱 · allow-list/允许清单 versus whitelist/白名单 — EN deliberately keeps these two
+distinct (an allow-list gates `Package.swift: sources` and the open-panel extensions; a whitelist
+is the parser's residue-character set), so ZH must mirror whichever EN word it faces.
 
 Two gaps need coining rather than translating: **"charset"** (NEXUS `SETS`) has no established
 Chinese term — the UI shows the literal English "Charset" — and **window chart** is labelled with
@@ -1931,7 +1944,7 @@ the bare 窗口, which collides with "window"; prefer 滑动窗口图 / *sliding
 ### 10.4 Unlocalised surfaces (honest list)
 
 The following are **not** driven by `L.s` and will therefore show one language regardless of the
-UI setting. This is the live i18n debt; CI greps for it but does not block on it (§12.6).
+UI setting. This is the live i18n debt; CI greps for it but does not block on it (§12.7).
 
 1. **Parser and domain error text.** All `CoreError.format` messages are Chinese literals
    (`AlignmentParsers.swift` throughout), and `CoreError`'s `errorDescription` prefixes are
@@ -2281,8 +2294,8 @@ writer's `paddedSlice`; NEXUS `CHARSET` partitions are re-projected with
 `CharsetRemapper.crop(charsets, startCol: s, endCol: e-1)`; `provenance` is copied onto the sliced
 alignment and `metadata`/`datatype` pass through. Output naming: `convert` defaults to
 `<input-basename>.<canonical ext>` and prints `Converted to <fmt> → <path>`; `export` defaults to
-`<input-basename>_alignment.<fmt>` and prints `已导出 <path>`; compressed **output** is selected by
-the output extension (`:284-294`).
+`<input-basename>_alignment.<fmt>` and prints `已导出 <path>`; compressed **input** is selected by
+the file extension (`:284-294`), and the CLI never compresses its output (`:109, 170, 233`).
 
 ### 13.3 `stats` CSV field table (`:82-105`)
 
@@ -2377,8 +2390,9 @@ package and not covered by a single test** (`CONTRIBUTING.md:30`).
 4. `Tests/SeqAlignCoreTests/SeqAlignCoreTests.swift:634-686` — spot-check the changed codons
    against the official `gc.prt` semantics for that table.
 5. Update the count wherever it is repeated: `README.md:8`, `MANUAL_EN.md:181`,
-   `MANUAL_ZH.md:181`, and §8.11 here. The denominator claim about how many tables NCBI defines is
-   an external fact and must be re-checked, not inherited.
+   `MANUAL_ZH.md:181`, and §8.11 here. As §8.11 rules, the count is a statement about **this
+   codebase** — EN "17 NCBI genetic-code tables", ZH 「17 张 NCBI 遗传密码表」 — and carries no claim
+   about how many tables NCBI itself defines, so there is no external denominator to re-check.
 
 ### 14.4 Adding a localised string
 
@@ -2437,10 +2451,10 @@ thing a reader could otherwise learn wrongly from an existing document.
 | `FaiIndexer` / `.fai` read+write | defined, **zero call sites** in `Sources/` or `Tests/` — an internal utility, not a user feature | `AlignmentParsers.swift:1005-1072` |
 | PHYLIP `sequential`, `strict10Char`, `fullnamePadded` output | selectable in the writer, **not reachable** from the app or CLI (both pass the default variant); only tests exercise them | `AlignmentWriters.swift:161-220`; `SeqAlignMacApp.swift:987`; `CLIRunner.swift:204` |
 | `writeFasta(wrapWidth > 0)` and `writeClustal(withConsensus: true)` | supported, never requested outside tests | `:37-56, 266-290`; `FormatRoundTripTests.swift:344` |
-| `ResidueAlphabet.gapCount`, `.isNucleotideCharacter`, `.missingDataSymbols`; `IUPACCode.DegeneracyScope`; `AlignmentTranslator.translateNoGaps` / `translateBoth` | unused-but-public definitions; do not present as features | `ResidueAlphabet.swift:35, 94, 100`; `PrimerCalculator.swift:69-72`; `TranslationTables.swift:462-478` |
+| `ResidueAlphabet.gapCount`, `.isNucleotideCharacter`, `.missingDataSymbols`; `IUPACCode.DegeneracyScope`; `AlignmentTranslator.translateNoGaps` / `translateBoth` | unused **internal** definitions — nothing in `Sources/` is declared `public`, and `translateNoGaps` / `translateBoth` are `private`; do not present as features | `ResidueAlphabet.swift:35, 94, 100`; `PrimerCalculator.swift:69-72`; `TranslationTables.swift:462, 467` |
 | `Gzip.trailerMatches` / `countGzipHeaders` | implemented but never called — CRC32+ISIZE trailer verification is described in a code comment and not wired; the live rejection heuristic is `hasBelievableSecondMemberBoundary`, which also ignores its `firstUncompressedLength` parameter | `AlignmentParsers.swift:1214-1288` |
 | CLI `exit 65` mixed-track refusal | defensive only: the flag lives in in-process translation metadata that the CLI never produces | `CLIRunner.swift:193-196`; `TranslationTables.swift:376-378` |
-| `meanPairwiseIdentityExact` | correct implementation, **no caller** | `ColumnStats.swift:342-372` |
+| `meanPairwiseIdentityExact` | correct implementation, **no caller outside tests** (`Tests/SeqAlignCoreTests/FormatRoundTripTests.swift:258`) | `ColumnStats.swift:342-372` |
 | 20 dead localisation keys, incl. the whole "Select Codon Position" submenu and the six-frame-overview leftovers | see §10.4 | `Localization.swift` |
 
 ### 15.2 Documentation statements that the code contradicts
@@ -2578,18 +2592,19 @@ corroboration inside the repository, and no `.dmg` or Homebrew formula.
 
 The repository contains **no** email address, PGP key fingerprint, or form URL, yet
 `SECURITY.md:15` and `CODE_OF_CONDUCT.md:31` refer to "the channels published by the maintainer";
-GitHub private vulnerability reporting is the only actionable path today.
-`CITATION.cff:6` uses `family-given:`, which is not a CFF 1.2.0 key, so strict validators may
-ignore or reject the author entry. `.zenodo.json` carries **no version, no publication date, and
-no DOI field**, so neither the version number nor either DOI can be cross-checked inside the
-repository, and the owner path casing differs between documents (`zengzichao` in `README.md:58`
-versus `ZengZichao` in `CITATION.cff:10` and the git remote) — resolve against GitHub rather than
-picking one. `CODE_OF_CONDUCT.md` has corrupted bilingual headings from a failed translation
-(`## acceptable 行为示例`, `- gracefully 接受建设性批评`) and should not be used as a stylistic
-model. Finally, `build.sh` has **lost its executable bit in this working tree**
-(`git status --porcelain` shows ` M build.sh`, a mode-only change from 100755 to 100644), while
-every document instructs `./build.sh`. Until restored, run **`bash build.sh`** or
-`chmod +x build.sh` first; CI is unaffected because checkout restores the mode from the index.
+GitHub private vulnerability reporting is the only actionable path today. Release metadata cannot
+be cross-checked from inside the repository either: `.zenodo.json` carries **no version, no
+publication date, and no DOI field**, so the `v0.1.0` of `CITATION.cff:10` and the two Zenodo DOIs
+(the version DOI at `CITATION.cff:12-13`, the concept DOI in the badge at `README.md:4`) rest
+entirely on the deposited record.
+`CITATION.cff` itself is valid CFF 1.2.0 and its author entry uses the canonical
+`family-names`/`given-names` keys (`:6-7`). `CODE_OF_CONDUCT.md` is no longer the
+failed-translation specimen this section once described — the headings are localised
+(`## 可接受的行为示例`, `:9`) and 「坦然接受建设性批评」 (`:13`) replaces the untranslated
+"gracefully" — but it is a *condensed* Chinese rendering of Contributor Covenant 2.0 rather than
+the canonical text: the "unacceptable behaviour" enumeration collapses into one sentence
+(`:17-18`), only its H1 is bilingual (`:2`), and its enforcement section delegates reports to
+`SECURITY.md` and to maintainer contact details that the repository does not publish (`:31`).
 
 ---
 
@@ -2617,19 +2632,22 @@ so the next change has one place to fix.
 ### 16.2 Versioning and release metadata
 
 `0.1.0` is recorded in `Info.plist:15-18` (`CFBundleShortVersionString` and `CFBundleVersion`,
-the packaging source of truth), `CITATION.cff:9` (`"v0.1.0"`), the git tag `v0.1.0`, `README.md:34`,
+the packaging source of truth), `CITATION.cff:10` (`"v0.1.0"`), the git tag `v0.1.0`, `README.md:35`,
 and in **hard-coded strings** `Localization.swift:1526` (`aboutVersion`) and `:1750`. There is no
 `CFBundleShortVersionString` lookup anywhere in `Sources/`, so the About box displays a fourth,
 manually maintained copy, and `build.sh` embeds no version (it copies `Info.plist` verbatim). Git
-history is two commits — the squashed initial import (`8ac0015`, 2026-09-24) and the citation
-metadata addition (`453197b`, 2026-09-30).
+history starts at the squashed initial import (`8ac0015`, 2026-09-24); the `v0.1.0` tag still
+points at that import, so everything committed since lies outside the tagged tree — including
+this `docs/` directory, which first entered the repository after the tag was cut. A reader who
+downloads the archived `v0.1.0` deposit therefore does not receive these documents: they exist
+only on `main`.
 
 Two Zenodo DOIs are in circulation *by design* and should be labelled explicitly wherever quoted:
 the **concept DOI** `10.5281/zenodo.23053513` (badge; resolves to the newest release) and the
 **version DOI** `10.5281/zenodo.23053514` (`CITATION.cff`, BibTeX entry with `note = {v0.1.0}`).
 Neither can be verified from inside this repository, because `.zenodo.json` has no DOI field.
-Licence: MIT (`LICENSE:3` copyright line; the SPDX id is declared in `CITATION.cff:13`,
-`.zenodo.json:10-12`, `README.md:179-181`, and `Info.plist:26`).
+Licence: MIT (`LICENSE:3` copyright line; the SPDX id is declared in `CITATION.cff:14`,
+`.zenodo.json:10-12`, `README.md:183`, and `Info.plist:26`).
 
 ### 16.3 References
 

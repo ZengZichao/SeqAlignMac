@@ -191,25 +191,25 @@ SeqAlignMac-项目代码/
 |---|---|---|
 | 场景图、菜单、键盘快捷键 | `SeqAlignMacApp.swift:34-45, 424-569` | 用的是 `WindowGroup` 而非 `DocumentGroup`；一棵 `SeqAlignCommands: Commands` 命令树。 |
 | 每个标签页的视图模型 | `Workspace: ObservableObject`（`SeqAlignMacApp.swift:103-322`） | 持有共享的 `Alignment` 以及全部视图状态。 |
-| 窗口／标签路由 | `WindowRegistry.shared`（`SeqAlignMacApp.swift:324-420`） | 见 §4.6。 |
+| 窗口／标签路由 | `WindowRegistry.shared`（`SeqAlignMacApp.swift:324-420`） | 见 §4.5。 |
 | 文本渲染 | `AlignmentCanvasView.swift`（AppKit `NSView` + Core Text） | 见 §9。 |
 | 调色板（索引 → `NSColor`） | `ColorSchemes.swift`（`ColorResolver`、7 套配色方案、按外观提供变体） | `minimal`、`defaultNucleotide`、`transitionTransversion`、`okabeIto` 提供浅色＋深色两种变体；`clustalX`/`zappo`/`seaView` 与外观无关，因此截图可与参考工具直接比对。 |
 | 离屏渲染几何 | `AlignmentRenderer.swift`、`ExportManager.swift` | 复用画布的几何计算，使导出图像与屏幕一致。 |
-| 子进程封装 | `ExternalAlignerView.swift` | 见 §15.4、§6.19。 |
+| 子进程封装 | `ExternalAlignerView.swift` | 见 §15.4、§6.2.19。 |
 | 本地化表 | `Localization.swift` | 见 §10。 |
 | 偏好设置 | `SettingsView.swift`（加上 `AppSettings`） | 见 §11。 |
 
 ### 4.4 基于通知的菜单到视图桥接
 
-`WindowGroup` 的命令是**全局**的，而每一处有意义的状态都是**按标签页**的。二者的桥接是一组 18 个 `Notification.Name`，声明在 `SeqAlignMacApp.swift:1425-1445`（`showSettings`、`showAbout`、`showGuide`、`showPrimer`、`showTranslate`、`showLogo`、`showTree`、`showWindowChart`、`showAnnotation`、`renameSeq`、`moveSeq`、`removeSelectedSeq`、`runAlignment`、`showExportPreview`、`showCommandPalette`、`qualityReport`、`toggleSearch`，以及来自 `Localization.swift:1928` 的 `languageChanged`）。
+`WindowGroup` 的命令是**全局**的，而每一处有意义的状态都是**按标签页**的。二者的桥接是一组 18 个 `Notification.Name`，声明在 `SeqAlignMacApp.swift:1426-1443`（`removeSelectedSeq`、`reverseComplement`、`insertGap`、`renameSeq`、`moveSeq`、`runAlignment`、`showPrimer`、`showSettings`、`showTranslate`、`showAbout`、`showGuide`、`showQualityReport`、`showCommandPalette`、`showExportPreview`、`pasteFromClipboard`、`tabStateChanged`、`tabDataChanged` 与 `lastTabClosed`），外加来自 `Localization.swift:1928` 的 `languageChanged`。其中 `tabStateChanged`、`tabDataChanged`、`lastTabClosed`、`languageChanged` 这四个名字由窗口根视图用 `.onReceive` 消费（`TabbedWindow.swift:160-173`），其余十五个由每个标签页的 `ContentView` 消费。
 
-菜单按钮负责发出通知；每个 `ContentView` 用 `.onReceive` 观察（`ContentView+Actions.swift` 中共有 13 个订阅块），并且**每个处理函数都以同一个守卫开头**：
+菜单按钮负责发出通知；每个 `ContentView` 通过一个私有的 `observe(_:_:)` 包装函数来观察——它封装 `NotificationCenter.addObserver(forName:object:queue:using:)` 并收集令牌（定义在 `ContentView+Actions.swift:17`，**15 处调用**位于 `:20-108`）——并且**每个处理函数都以同一个守卫开头**：
 
 ```swift
 guard isActiveWorkspace() else { return }   // WindowRegistry.shared.activeForAction === workspace
 ```
 
-由于每个打开的标签页都存在一个 `ContentView`，未加守卫的处理函数会在后台窗口里打开弹出面板；正是这个守卫，加上 `onDisappear`（`ContentView+Actions.swift:113`）里的令牌移除，使这种一对多扇出成为安全。菜单可用状态与重新本地化用了第二个技巧：`SeqAlignCommands.body` 在 `body` 内部*读取* `registry.editRevision` 与 `lang.language`（`SeqAlignMacApp.swift:430-431`），于是二者任一变化时 SwiftUI 会让菜单树失效（撤销／重做条目的置灰、运行时的语言切换）。
+由于每个打开的标签页都存在一个 `ContentView`，未加守卫的处理函数会在后台窗口里打开弹出面板；正是这个守卫（`ContentView+Actions.swift:113-115`），加上 `onDisappear`（`ContentView.swift:118-124`）里的令牌拆除，使这种一对多扇出成为安全。菜单可用状态与重新本地化用了第二个技巧：`SeqAlignCommands.body` 在 `body` 内部*读取* `registry.editRevision` 与 `lang.language`（`SeqAlignMacApp.swift:430-431`），于是二者任一变化时 SwiftUI 会让菜单树失效（撤销／重做条目的置灰、运行时的语言切换）。
 
 有一处使用了错误模式的已知实例仍然存在：`performExport` 针对 `WindowRegistry.shared.activeForAction` 而不是拥有它的工作区发出提示浮层（`ExportPreviewSheet.swift:~250`）——见 §15。
 
@@ -457,7 +457,7 @@ struct CharsetInfo {                    // AlignmentCore.swift:83-89
 
 #### 6.2.2 `Sources/ContentView.swift` + `Sources/ContentView+Actions.swift`
 
-每个窗口的根布局：侧栏 | 中心面板 | 统计面板，带 `PanelResizer` 分隔边界（`ContentView.swift:55-101`）以及 `.onDrop` 处理函数。`+Actions` 承载 13 个 `.onReceive` 通知处理函数（每个都由 `isActiveWorkspace()` 把关，`:113` 处做令牌拆除）、排序动作（后台 Schwartzian 变换，带 `revision` 复检与 `attempts: 2` 重试，`:163-266`）、粘贴处理（`:340-379`）、空位列移除命令（`removeGapColumns(threshold: 1.0 / 0.5)`，以及它自己那段位于 `:322-334` 的空位计数循环），以及三处内联的中/英字符串分支（`:247, 258, 368`，§10.4）。已知缺陷：`.observingAppearanceChanges()` 被应用了两次（`:98` 与 `:103`）。
+每个窗口的根布局：侧栏 | 中心面板 | 统计面板，带 `PanelResizer` 分隔边界（`ContentView.swift:55-101`）以及 `.onDrop` 处理函数。`+Actions` 承载经其私有 `observe(_:_:)` 包装函数注册的 15 个通知处理函数（每个都由 `isActiveWorkspace()` 把关，`:113-115`；令牌拆除在 `ContentView.swift:118-124`）、排序动作（后台 Schwartzian 变换，带 `revision` 复检与 `attempts: 2` 重试，`:163-266`）、粘贴处理（`:340-379`）、空位列移除命令（`removeGapColumns(threshold: 1.0 / 0.5)`，以及它自己那段位于 `:322-334` 的空位计数循环），以及三处内联的中/英字符串分支（`:247, 258, 368`，§10.4）。已知缺陷：`.observingAppearanceChanges()` 被应用了两次（`:98` 与 `:103`）。
 
 #### 6.2.3 `Sources/CenterPanelView.swift`
 
@@ -465,7 +465,7 @@ struct CharsetInfo {                    // AlignmentCore.swift:83-89
 
 #### 6.2.4 `Sources/LeftSidebarView.swift`（363 行）
 
-应用中唯一的工具栏，分为五组（文件 / 分析 / 视图 / 导出 / 系统）。覆盖全部 7 种方案的方案选择器（`:245-296`）、提供六种格式的序列导出——**不含 FASTQ**（`:347-358`）、外观与语言按钮（`:192-200`），以及 翻译（Translate）/ 引物（Primer）的仅限核苷酸禁用逻辑（`:78, 84`）。
+应用中唯一的工具栏，分为五组（文件 / 分析 / 视图 / 导出 / 系统）。覆盖全部 7 种方案的方案选择器（`:245-296`）、提供六种格式的序列导出——**不含 FASTQ**（`:347-358`）、外观与语言按钮（`:192-200`）。翻译（Translate）与引物（Primer）是唯一会因蛋白质数据而额外禁用的按钮（`:78, 84`）；所有依赖数据的按钮在未加载比对时都会被禁用（`:58, 72, 90-114, 136, 149`）。
 
 #### 6.2.5 `Sources/TabbedWindow.swift`（450 行）
 
@@ -735,8 +735,10 @@ UI 或 CLI 无法到达**；只有测试会用到它们（`FormatRoundTripTests.
   10 字节头部 `1F 8B 08 00 00 00 00 00 00 FF`，再加上 CRC32 + ISIZE 小端尾部；CRC 多项式
   `0xEDB88320`（`:1364-1376`）。保存来源为 `.gz` 的文档时会就地重新压缩
   （`SeqAlignMacApp.swift:890-893, 924-931`）；"另存为"会清除 `sourceIsCompressed`，所以副本是
-  未压缩的（`:940`）。当*输出*扩展为 `.gz` 时 `cli convert`/`export` 会重新压缩
-  （`CLIRunner.swift:284-294`、`SeqAlignMacApp.swift:913-954`）。
+  未压缩的（`:940`）。`cli convert`/`export` 从不压缩：它们把序列化得到的字节原样写出
+  （`CLIRunner.swift:109, 170, 233`），命令行侧唯一与 gzip 有关的判断是*输入*解压，由输入文件的扩展名
+  决定（`:284-294`）——应用在 `SeqAlignMacApp.swift:913-954` 的那条路径同样只看 `sourceIsCompressed`，
+  从不看输出扩展名。
 * 缓冲区大小：deflate 从 `max(input + input/1000 + 64, 64 KB)` 起步，带 6 次四倍扩容重试
   （`:1379-1400`）；inflate 从 `max(input × 8, 64 KB)` 起步，带 8 次重试（`:1402-1422`）。
 
@@ -1469,14 +1471,19 @@ row = floor((y − topBarHeight  − consensusHeight) / cellHeight)
 colour scheme/配色方案 · conservation (threshold)/保守度（阈值） · column identity/列一致度 ·
 **pooled identity (site-weighted)/池化一致度（位点加权）** · consensus sequence/共识序列 ·
 consensus mode/共识模式（majority rule / IUPAC degenerate / strict = 多数规则 / IUPAC 简并 /
-严格共识）· gap column / 无评分列（当前的标签 含空位列数 有误导性，§8.3）· all-gap columns/全空位列 ·
+严格共识）· gap column / 空位列（统计面板自身的标签 含空位列数 有误导性，§8.3）· all-gap columns/全空位列 ·
 high-gap columns (>50 %)/空位富集列 · gap trimming/空位精简 · undetermined/未判定 与
 degenerate/简并（保持区分）· variable / parsimony-informative / singleton site/变异位点 ·
 简约信息位点 · 单态位点 · reading frame/阅读框 · codon track/密码子轨道 · reverse complement/
 反向互补 · difference mode/差异模式 · focus dim/聚焦变暗 · melting temperature/熔解温度
-（Tm 保持原样）· neighbour-joining tree/邻接法系统发育树 · sliding window/滑动窗口 · sequence logo/
+（Tm 保持原样）· neighbour-joining tree/邻接法系统发育树 · 短复合形式 neighbour-joining/NJ 树
+仅在引用界面标签时可用，正文一律使用术语表的长形 · nearest-neighbour (Tm, salt correction)/最近邻法——
+切勿写作 近邻法，它与 邻接法 在视觉上极易混淆 · sliding window/滑动窗口 · sequence logo/
 序列 Logo · annotation browser/注释浏览器 · command palette/命令面板 · frozen name column/名称列冻结 ·
-density-adaptive glyphs/密度自适应 · external aligner/外部比对器。
+density-adaptive glyphs/密度自适应 · external aligner/外部比对器 · consensus row/共识行（显示中的那
+一行；共识序列 指的是*序列*本身，是另一个对象）· sandbox/沙箱 · allow-list/允许清单 与
+whitelist/白名单——英文有意区分这两个词（allow-list 管的是 `Package.swift` 的 `sources` 与打开面板的
+扩展名，whitelist 指解析器的残基字符集），因此中文必须随它所面对的英文用词对应。
 
 有两处空白需要"造词"而不是翻译：**"charset"**（NEXUS 的 `SETS`）没有既成的中文术语——界面直接显示
 英文原词 "Charset"——而 **window chart** 只用光秃秃的 窗口 标注，与 "window" 冲突；应优先使用
@@ -1485,7 +1492,7 @@ density-adaptive glyphs/密度自适应 · external aligner/外部比对器。
 ### 10.4 未本地化的界面（如实清单）
 
 下列内容**不是**由 `L.s` 驱动的，因此无论界面语言如何设置都只会显示一种语言。这就是当前实际存在的
-i18n 欠债；CI 会 grep 检查它，但不据此阻断（§12.6）。
+i18n 欠债；CI 会 grep 检查它，但不据此阻断（§12.7）。
 
 1. **解析器与领域层错误文本。** 所有 `CoreError.format` 消息都是中文字面量
    （`AlignmentParsers.swift` 全文），而 `CoreError` 的 `errorDescription` 前缀也是硬编码的中文
@@ -1758,7 +1765,7 @@ bundle/zip 不存在。
 
 ## 13. 命令行接口契约
 
-CLI 是受支持的接口，而不是调试后门：它的退出码与 CSV 列名都是可复现性叙述的一部分。**面向任务的配方收录在 [`USAGE_ZH.md`](USAGE_ZH.md) §14「Command-line usage」；本节负责确立契约。**
+CLI 是受支持的接口，而不是调试后门：它的退出码与 CSV 列名都是可复现性叙述的一部分。**面向任务的配方收录在 [`USAGE_ZH.md`](USAGE_ZH.md) §14「命令行用法」；本节负责确立契约。**
 
 调用方式——与 GUI 使用同一个 Mach-O 二进制，在任何窗口创建之前完成分派（`SeqAlignMacApp.swift:19-25`、`CLIRunner.swift:21-25`）：
 
@@ -1792,7 +1799,7 @@ CLI 是受支持的接口，而不是调试后门：它的退出码与 CSV 列�
 | 选项解析器 | 只支持 `--key value` / `-o value` 与位置参数；以 `-` 开头的取值会被拒绝；重复出现的选项以第一次为准 | 取值看起来像开关的选项被视为缺失 → 使用默认值 |
 | 名称列 | 从 `UserDefaults["SeqAlignMac.nameColWidth"]` 读取，否则为 150 | 因此无头运行会继承 GUI 偏好设置——它**并非**完全封闭自洽（`:163-164`）|
 
-`subAlignment` 的切片语义（`:238-267`）：`s = max(1,start) − 1`、`e = min(length,end)`；短于窗口的行用 `'-'` 右填充到统一宽度，与写出器的 `paddedSlice` 一致；NEXUS `CHARSET` 分区通过 `CharsetRemapper.crop(charsets, startCol: s, endCol: e-1)` 重新投影；`provenance` 会复制到切片后的比对上，`metadata`／`datatype` 直接透传。输出命名：`convert` 默认为 `<input-basename>.<canonical ext>` 并打印 `Converted to <fmt> → <path>`；`export` 默认为 `<input-basename>_alignment.<fmt>` 并打印 `已导出 <path>`；压缩**输出**由输出文件的扩展名决定（`:284-294`）。
+`subAlignment` 的切片语义（`:238-267`）：`s = max(1,start) − 1`、`e = min(length,end)`；短于窗口的行用 `'-'` 右填充到统一宽度，与写出器的 `paddedSlice` 一致；NEXUS `CHARSET` 分区通过 `CharsetRemapper.crop(charsets, startCol: s, endCol: e-1)` 重新投影；`provenance` 会复制到切片后的比对上，`metadata`／`datatype` 直接透传。输出命名：`convert` 默认为 `<input-basename>.<canonical ext>` 并打印 `Converted to <fmt> → <path>`；`export` 默认为 `<input-basename>_alignment.<fmt>` 并打印 `已导出 <path>`；压缩**输入**由文件扩展名决定（`:284-294`），CLI 不会压缩输出（`:109, 170, 233`）。
 
 ### 13.3 `stats` CSV 字段表（`:82-105`）
 
@@ -1816,7 +1823,7 @@ CLI 是受支持的接口，而不是调试后门：它的退出码与 CSV 列�
 
 ### 13.4 退出码
 
-| 退出码 | 符号 | 抛出位置 | 含义 |
+| 退出码 | 符号 | 触发位置 | 含义 |
 |---|---|---|---|
 | `0` | 成功 | `:51` | 子命令执行完毕 |
 | `64` | `EX_USAGE` | `:24`（少于 2 个 token）、`:49`（未知子命令）、`:152`（`export --format` 非法）、`:179`（缺少 `convert --format`）、`:228`（`convert --format` 非法）| 用法错误；用法块输出到**标准输出** |
@@ -1881,8 +1888,9 @@ CLI 是受支持的接口，而不是调试后门：它的退出码与 CSV 列�
 4. `Tests/SeqAlignCoreTests/SeqAlignCoreTests.swift:634-686` —— 针对该表，对照官方
    `gc.prt` 的语义抽查被改动的密码子。
 5. 在计数被重复出现的地方一并更新：`README.md:8`、`MANUAL_EN.md:181`、
-   `MANUAL_ZH.md:181`，以及本文的 §8.11。关于 NCBI 定义了多少张表这一分母说法属于外部事实，
-   必须重新核实而不能沿用。
+   `MANUAL_ZH.md:181`，以及本文的 §8.11。按 §8.11 的裁定，这个计数是对**本代码库**的陈述——
+   英文 "17 NCBI genetic-code tables"，中文「17 张 NCBI 遗传密码表」——并不声称 NCBI 自己定义了多少
+   张表，因此不存在需要重新核实的外部分母。
 
 ### 14.4 新增本地化字符串
 
@@ -1937,10 +1945,10 @@ CLI 是受支持的接口，而不是调试后门：它的退出码与 CSV 列�
 | `FaiIndexer` / `.fai` 读写 | 已定义，但在 `Sources/` 或 `Tests/` 中**零调用点**——是内部工具，不是用户功能 | `AlignmentParsers.swift:1005-1072` |
 | PHYLIP `sequential`、`strict10Char`、`fullnamePadded` 输出 | 在写出器中可选，但从 app 或 CLI **不可达**（两者都传入默认变体）；只有测试会执行它们 | `AlignmentWriters.swift:161-220`；`SeqAlignMacApp.swift:987`；`CLIRunner.swift:204` |
 | `writeFasta(wrapWidth > 0)` 与 `writeClustal(withConsensus: true)` | 受支持，但除测试之外从未被请求 | `:37-56, 266-290`；`FormatRoundTripTests.swift:344` |
-| `ResidueAlphabet.gapCount`、`.isNucleotideCharacter`、`.missingDataSymbols`；`IUPACCode.DegeneracyScope`；`AlignmentTranslator.translateNoGaps` / `translateBoth` | 已公开但未被使用的定义；不要把它们当作功能呈现 | `ResidueAlphabet.swift:35, 94, 100`；`PrimerCalculator.swift:69-72`；`TranslationTables.swift:462-478` |
+| `ResidueAlphabet.gapCount`、`.isNucleotideCharacter`、`.missingDataSymbols`；`IUPACCode.DegeneracyScope`；`AlignmentTranslator.translateNoGaps` / `translateBoth` | 未被使用的**内部**（internal）定义——`Sources/` 中没有任何声明是 `public` 的，而 `translateNoGaps` / `translateBoth` 实为 `private`；不要把它们当作功能呈现 | `ResidueAlphabet.swift:35, 94, 100`；`PrimerCalculator.swift:69-72`；`TranslationTables.swift:462, 467` |
 | `Gzip.trailerMatches` / `countGzipHeaders` | 已实现但从未被调用——CRC32+ISIZE 尾部校验只在代码注释中被描述，并未接线；实际生效的拒绝启发式是 `hasBelievableSecondMemberBoundary`，它同样忽略了自身的 `firstUncompressedLength` 参数 | `AlignmentParsers.swift:1214-1288` |
 | CLI `exit 65` 的混合轨拒绝 | 仅为防御性代码：该标记位于进程内翻译元数据中，而 CLI 从不产生它 | `CLIRunner.swift:193-196`；`TranslationTables.swift:376-378` |
-| `meanPairwiseIdentityExact` | 实现正确，但**没有调用方** | `ColumnStats.swift:342-372` |
+| `meanPairwiseIdentityExact` | 实现正确，但**除测试外没有调用方**（`Tests/SeqAlignCoreTests/FormatRoundTripTests.swift:258`） | `ColumnStats.swift:342-372` |
 | 20 个死本地化 key，包括整个“Select Codon Position”子菜单以及六框概览的残留项 | 见 §10.4 | `Localization.swift` |
 
 ### 15.2 被代码推翻的文档表述
@@ -1999,7 +2007,7 @@ CLI 是受支持的接口，而不是调试后门：它的退出码与 CSV 列�
 
 `ExportOptions.dpi` 接受任意取值，但**在任何地方都没有对应的 UI 控件**：PNG 恒为 300
 DPI，而尺寸标签硬编码了字符串 "(300 DPI)"（`ExportManager.swift:24-47`）。
-`showConsensus` 在两条导出路径上都被硬编码为 `true`，因此在屏幕上隐藏共识序列行并**不会**在导出
+`showConsensus` 在两条导出路径上都被硬编码为 `true`，因此在屏幕上隐藏共识行并**不会**在导出
 图像中隐藏它。预览缩略图始终是被截断（钳制）到 1,600 px 的 PNG 渲染，与所选的 PNG/PDF/SVG
 段无关，而且切换该段也不会重新渲染。序列导出界面彼此不对称：侧栏提供六种格式（没有
 FASTQ），通用「另存为」面板提供五种扩展名，而写出器支持七种（§7.12）。
@@ -2058,8 +2066,8 @@ FASTQ），通用「另存为」面板提供五种扩展名，而写出器支持
 
 ### 15.11 无障碍与本地化欠账
 
-图例浮层在英文界面下显示中文（§10.4 第 4 条）；画布提示条、光标播报、共识序列标签与列速览
-tooltip 只有中文；状态栏字符集标签只有英文；17 个遗传密码选择器条目只有英文。纯键盘工作流大体
+图例浮层在英文界面下显示中文（§10.4 第 4 条）；画布提示条、光标播报、共识序列标签与列悬停提示
+只有中文；状态栏字符集标签只有英文；17 个遗传密码选择器条目只有英文。纯键盘工作流大体
 完整，但 ⇧⌘G 冲突（§15.4）以及 Okabe-Ito——那个色觉障碍配色方案——缺少命令面板条目，这两者本身
 就属于无障碍缺陷。
 
@@ -2073,16 +2081,14 @@ tooltip 只有中文；状态栏字符集标签只有英文；17 个遗传密码
 
 仓库中**没有**电子邮箱地址、PGP 密钥指纹或表单 URL，然而 `SECURITY.md:15` 与
 `CODE_OF_CONDUCT.md:31` 都提到“维护者公布的渠道”；GitHub 的私有漏洞报告是今天唯一可行的路径。
-`CITATION.cff:6` 使用了 `family-given:`，这不是 CFF 1.2.0 的 key，因此严格的校验器可能忽略或
-拒绝该作者条目。`.zenodo.json` **不含版本号、不含发布日期、也没有 DOI 字段**，所以版本号和两个
-DOI 都无法在仓库内部交叉核对，而且所有者路径的大小写在各文档之间不一致（`README.md:58`
-用 `zengzichao`，而 `CITATION.cff:10` 与 git remote 用 `ZengZichao`）——应以 GitHub
-为准裁定，而不是自行择一。`CODE_OF_CONDUCT.md` 因一次失败的翻译而带有破损的双语标题
-（`## acceptable 行为示例`、`- gracefully 接受建设性批评`），不应被当作文体范例。最后，
-`build.sh` **在本工作树中丢失了可执行位**
-（`git status --porcelain` 显示 ` M build.sh`，是从 100755 到 100644 的纯模式变更），而每一份
-文档都指示使用 `./build.sh`。在恢复该位之前，请运行 **`bash build.sh`**，或先
-`chmod +x build.sh`；CI 不受影响，因为 checkout 会从索引恢复模式位。
+发布元数据同样无法在仓库内部交叉核对：`.zenodo.json` **不含版本号、不含发布日期、也没有 DOI
+字段**，因此 `CITATION.cff:10` 的 `v0.1.0` 与两个 Zenodo DOI（版本 DOI 在 `CITATION.cff:12-13`，
+概念 DOI 在 `README.md:4` 的徽章中）完全依赖于存档记录本身。`CITATION.cff` 本身是合法的 CFF 1.2.0，其作者条目
+使用的是规范的 `family-names`/`given-names` key（`:6-7`）。`CODE_OF_CONDUCT.md` 已不再是本节
+曾经描述的“翻译失败样本”——标题已完成本地化（`## 可接受的行为示例`，`:9`），
+「坦然接受建设性批评」（`:13`）取代了未翻译的 "gracefully"——但它是对 Contributor Covenant 2.0 的
+*压缩*中文版，而非该准则的正文：不可接受行为的条目清单被压缩成了一句（`:17-18`），只有一级标题是
+双语的（`:2`），而其执行章节把举报指向了 `SECURITY.md` 以及仓库并未公布的维护者联系方式（`:31`）。
 
 ---
 
@@ -2107,17 +2113,19 @@ DOI 都无法在仓库内部交叉核对，而且所有者路径的大小写在�
 ### 16.2 版本与发布元数据
 
 `0.1.0` 记录在 `Info.plist:15-18`（`CFBundleShortVersionString` 与 `CFBundleVersion`，即打包的
-事实来源）、`CITATION.cff:9`（`"v0.1.0"`）、git 标签 `v0.1.0`、`README.md:34`，以及
+事实来源）、`CITATION.cff:10`（`"v0.1.0"`）、git 标签 `v0.1.0`、`README.md:35`，以及
 **硬编码字符串** `Localization.swift:1526`（`aboutVersion`）和 `:1750` 中。`Sources/`
 中没有任何地方去查询 `CFBundleShortVersionString`，因此「关于」窗口显示的是第四份手工维护的副本，
-而 `build.sh` 并不嵌入版本信息（它逐字复制 `Info.plist`）。git 历史只有两次提交——压缩后的初始
-导入（`8ac0015`，2026-09-24）与引用元数据的添加（`453197b`，2026-09-30）。
+而 `build.sh` 并不嵌入版本信息（它逐字复制 `Info.plist`）。git 历史的起点是压缩后的初始导入
+（`8ac0015`，2026-09-24）；`v0.1.0` 标签至今仍指向那次导入，因此此后提交的一切都在被标记的树之外——
+其中也包括本 `docs/` 目录，它是在标签打出之后才第一次进入仓库的。所以，下载已存档的 `v0.1.0`
+的人拿不到这些文档：它们只存在于 `main` 分支上。
 
 两个 Zenodo DOI 是*有意*并行使用的，凡引用都应明确标注：**概念 DOI**
 `10.5281/zenodo.23053513`（徽章；解析到最新发布版本）与**版本 DOI**
 `10.5281/zenodo.23053514`（`CITATION.cff`，带 `note = {v0.1.0}` 的 BibTeX 条目）。二者都无法在
 本仓库内部验证，因为 `.zenodo.json` 没有 DOI 字段。许可证：MIT（`LICENSE:3` 的版权行；SPDX id
-声明于 `CITATION.cff:13`、`.zenodo.json:10-12`、`README.md:179-181` 与 `Info.plist:26`）。
+声明于 `CITATION.cff:14`、`.zenodo.json:10-12`、`README.md:183` 与 `Info.plist:26`）。
 
 ### 16.3 参考文献
 
@@ -2146,7 +2154,7 @@ DOI 都无法在仓库内部交叉核对，而且所有者路径的大小写在�
 10. 格式规范：GCG MSF（`AlignmentWriters.swift:293-309`，校验和
     `Σ ((i mod 57)+1)·ASCII` mod 10000）、ClustalX 着色与保守性记号
     （`ColorLogic.swift:178-189`、`AlignmentWriters.swift:233-264`）、Pfam Stockholm 1.0
-    （`AlignmentWriters.swift:349-371`）、NEXUS/PAUP 的 `SETS`/`CHARSET` 步进记号
+    （`AlignmentWriters.swift:349-371`）、NEXUS/PAUP 的 `SETS`/`CHARSET` 步进记法
     （`AlignmentParsers.swift:531-578`）、FASTQ Phred+33/+64（SAM/BAM 规范，
     `AlignmentParsers.swift:249-260`）、gzip RFC 1952 与 BGZF（samtools）
     （`AlignmentParsers.swift:1186-1423`）、GFF3（Sequence Ontology）。

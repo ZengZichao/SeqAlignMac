@@ -1108,7 +1108,7 @@ CSV fields, in order (`metric,value`; values are quoted only when they contain a
 | `pooled_identity_site_weighted` | Site-weighted pooled identity, 0–1 with four decimals — see 9.1; this is not a per-pair mean |
 | `declared_aligned` | Provenance: `aligned`, `unknown` or `not-aligned` |
 | `mean_column_identity` | Arithmetic mean of the per-column identity values, 0–1 |
-| `min_column_identity`, `max_column_identity` | Best/worst columns, over informative columns (0 when none exist) |
+| `min_column_identity`, `max_column_identity` | Worst/best columns, over informative columns (0 when none exist) |
 | `gap_columns` | Columns with no assignable residue (all-gap **or** all-undetermined) |
 | `total_columns` | Column count |
 | `variable_sites`, `parsimony_informative_sites`, `singleton_sites` | Site counts as defined in 9.1 |
