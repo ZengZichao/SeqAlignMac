@@ -196,7 +196,7 @@ struct StatsPanelView: View {
     private var overviewSection: some View {
         section(L.s.statsOverview) {
             if let align = workspace.currentAlignment {
-                statRow(L.s.statsFile, workspace.currentFileName.isEmpty ? L.s.unnamed : workspace.currentFileName)
+                // 文件名已在标签页与状态栏显示两次，概览只留与分析相关的量
                 statRow(L.s.statsFormat, AppStrings.formatName(workspace.currentFormat, zh: lang.language == .zh))
                 statRow(L.s.statsSeqCount, "\(align.seqCount)")
                 statRow(L.s.statsColCount, "\(align.length)")
@@ -235,26 +235,45 @@ struct StatsPanelView: View {
     private var conservationSection: some View {
         section(L.s.statsConservation) {
             let maxCount = max(1, model.histogram.max() ?? 1)
-            HStack(alignment: .bottom, spacing: Minimal.space1) {
-                ForEach(0..<5, id: \.self) { i in
-                    VStack(spacing: Minimal.space1) {
+            // 五档直方图：柱宽固定、底线 0.5pt、标签对齐各自柱心，
+            // 零计数不出柱（不再残留 3pt 的假柱头）
+            VStack(spacing: Minimal.space1) {
+                HStack(alignment: .bottom, spacing: Minimal.space1) {
+                    ForEach(0..<5, id: \.self) { i in
                         Rectangle()
                             .fill(Color(Minimal.chartGradient(dark: isDarkAppearance, index: i)))
-                            .frame(height: 3 + CGFloat(model.histogram[i]) / CGFloat(maxCount) * 34)
+                            .frame(width: 18, height: barHeight(i, maxCount: maxCount))
+                            .frame(maxWidth: .infinity, alignment: .center)
+                    }
+                }
+                .frame(height: 36, alignment: .bottom)
+
+                Rectangle()
+                    .fill(Color(Minimal.border(dark: isDarkAppearance)))
+                    .frame(height: Minimal.hairline)
+
+                HStack(spacing: Minimal.space1) {
+                    ForEach(0..<5, id: \.self) { i in
                         Text(Self.bucketLabels[i])
                             .font(.system(size: Minimal.fontXXS))
                             .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
                             .lineLimit(1)
                             .fixedSize(horizontal: true, vertical: false)
+                            .frame(maxWidth: .infinity)
                     }
-                    .frame(maxWidth: .infinity)
                 }
             }
-            .frame(height: 34 + 12 + Minimal.space1 + 4, alignment: .bottom)
             .padding(.bottom, Minimal.space2)
 
             statRow(L.s.statsHighConserved, "\(Int((model.highConservedRatio * 100).rounded()))%")
         }
+    }
+
+    /// 柱高按本档占比取值（0 为无柱），最高 36pt
+    private func barHeight(_ index: Int, maxCount: Int) -> CGFloat {
+        let count = model.histogram[index]
+        guard count > 0 else { return 0 }
+        return max(2, CGFloat(count) / CGFloat(maxCount) * 36)
     }
 
     private var phyloInfoSection: some View {
@@ -342,14 +361,17 @@ struct StatsPanelView: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: Minimal.space2) {
-            Spacer()
+        // 空状态贴着面板顶部、左缘与分区标题同列：它是一行状态，不是插画，
+        // 不该在整块空白里垂直居中
+        VStack(alignment: .leading, spacing: 0) {
             Text(L.s.statsEmptyTitle)
-                .font(.system(size: Minimal.fontSM, weight: .medium))
+                .font(.system(size: Minimal.fontXXS))
                 .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
-            Spacer()
+            Spacer(minLength: 0)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, Minimal.space3)
+        .padding(.top, Minimal.space3)
     }
 
     // MARK: 通用小组件

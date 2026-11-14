@@ -56,6 +56,9 @@ struct ContentView: View {
         let saved = UserDefaults.standard.double(forKey: "SeqAlignMac.statsPanelWidth")
         return saved > 0 ? CGFloat(saved) : 264
     }()
+    // 主题写进内容视图的身份：切主题时整棵内容按新明暗重新求值。
+    // 放在 sheet 呈现修饰符之前——弹窗的呈现状态挂在外面，不会被连带关掉。
+    @AppStorage("SeqAlignMac.appearance") private var appearanceRaw = "system"
     @State var leftSidebarWidth: CGFloat = {
         let saved = UserDefaults.standard.double(forKey: "SeqAlignMac.leftSidebarWidth")
         return saved > 0 ? CGFloat(saved) : 180
@@ -66,7 +69,11 @@ struct ContentView: View {
     var body: some View {
         HStack(spacing: 0) {
             // 左栏：全部工具按钮（垂直排列，宽度可拖拽调节）
+            // 外观变化时三栏各自重建：只重算修饰符自己不够，读 AppKit 全局颜色的子视图
+            // 会整棵被 SwiftUI 跳过，切主题后留下“半深半浅”。重建范围限定在栏内，
+            // 不影响挂在根上的 sheet 呈现状态。
             leftSidebar
+                .observingAppearanceChanges()
 
             // 左栏拖宽分隔条 + 分隔线
             PanelResizer(width: $leftSidebarWidth, side: .left,
@@ -77,6 +84,7 @@ struct ContentView: View {
 
             // 中栏：搜索栏 + 画布 + 状态栏
             centerContent
+                .observingAppearanceChanges()
 
             // 右栏分隔条 + 统计面板
             PanelResizer(width: $statsPanelWidth)
@@ -84,8 +92,15 @@ struct ContentView: View {
                            cursorRow: cursorRow,
                            cursorCol: cursorCol,
                            width: statsPanelWidth)
+                .observingAppearanceChanges()
         }
         .background(Color(Minimal.surface(dark: isDarkAppearance)))
+        // 原生控件（勾选、开关、分段）默认取系统蓝；统一压到主色，界面上不出现调色板外的颜色
+        .tint(Color(Minimal.primary(dark: isDarkAppearance)))
+        // 根层也依赖外观：只让三栏各自重建时，根上的 surface 底色仍停在旧明暗，
+        // 左栏（透明底）会露出浅色底配白色文字。放在 sheet 修饰符之前，
+        // 重建范围不含弹窗呈现，不会把已打开的 sheet 踢掉。
+        .observingAppearanceChanges()
         // 面板宽度持久化：拖拽由 PanelResizer 经 Binding 回写 @State，
         // 只有 onChange 能可靠观测到这类变更（didSet 不会触发）
         .onChange(of: statsPanelWidth) { _, newValue in
@@ -94,13 +109,9 @@ struct ContentView: View {
         .onChange(of: leftSidebarWidth) { _, newValue in
             UserDefaults.standard.set(Double(newValue), forKey: "SeqAlignMac.leftSidebarWidth")
         }
-        // 跟随系统外观变化触发整树重算
-        .observingAppearanceChanges()
         // 左栏（宽度 = leftSidebarWidth）滚动条整体不绘制：常驻滑块紧邻左右分界线，
         // 长度只占可视比例，视觉上像一条断掉的半截分隔线
         .thinScrollbars(suppressedSidebarWidth: leftSidebarWidth)
-        // 跟随系统外观变化触发整树重算
-        .observingAppearanceChanges()
         .onAppear {
             WindowRegistry.shared.register(workspace)
             WindowRegistry.shared.activeWorkspace = workspace
@@ -131,6 +142,9 @@ struct ContentView: View {
         .onDrop(of: [.fileURL], isTargeted: nil) { providers in
             handleDrop(providers)
         }
+        // 内容树身份含主题：切换后整棵重新求值，取色全部更新；
+        // 弹窗仍由下面的 SheetFocusRestorer 呈现，不受重建影响。
+        .id(appearanceRaw)
         // — Sheets（Bug #3：sheet dismiss 后焦点回流画布）—
         .modifier(SheetFocusRestorer(
             showingPrimerSheet: $showingPrimerSheet,

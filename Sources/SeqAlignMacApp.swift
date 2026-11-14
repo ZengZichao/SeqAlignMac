@@ -1342,16 +1342,46 @@ final class AppearanceManager {
     static let shared = AppearanceManager()
     static let key = "SeqAlignMac.appearance"
 
+    /// 全局明暗判定的唯一来源：按用户的主题设置取值，而不是按某个窗口
+    /// 或 NSApp 的 effectiveAppearance 现读——窗口外观会被 AppKit/SwiftUI
+    /// 在重建时复位，现读会得到“半深半浅”。跟随系统时才回落现读。
+    var isDark: Bool {
+        switch current() {
+        case .dark: return true
+        case .light: return false
+        case .system:
+            return NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        }
+    }
+
     func current() -> AppearanceMode {
         AppearanceMode(rawValue: UserDefaults.standard.string(forKey: Self.key) ?? "system") ?? .system
     }
 
     func apply(_ mode: AppearanceMode) {
         UserDefaults.standard.set(mode.rawValue, forKey: Self.key)
+        let appearance: NSAppearance?
         switch mode {
-        case .system: NSApp.appearance = nil
-        case .light:  NSApp.appearance = NSAppearance(named: .aqua)
-        case .dark:   NSApp.appearance = NSAppearance(named: .darkAqua)
+        case .system: appearance = nil
+        case .light:  appearance = NSAppearance(named: .aqua)
+        case .dark:   appearance = NSAppearance(named: .darkAqua)
+        }
+        NSApp.appearance = appearance
+        // 只改 NSApp.appearance 时，已挂载的 sheet（独立 NSWindow）不会重新取色，
+        // 弹窗里的文字会留在旧明暗上变成“深色底 + 深色字”。把外观显式下发到每个窗口
+        // （含 childWindows 上的 sheet），让各自的 viewDidChangeEffectiveAppearance 触发重算。
+        for window in NSApp.windows {
+            window.appearance = appearance
+            window.contentView?.needsDisplay = true
+            for child in window.childWindows ?? [] {
+                child.appearance = appearance
+                child.contentView?.needsDisplay = true
+            }
+        }
+        // 外观已落到全部窗口之后再通知：SwiftUI 不跟踪 AppKit 的全局取色，
+        // 各视图按「明暗 + 纪元」重建一次，避免某一栏/某一层停在旧明暗上。
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: .seqAlignAppearanceChanged, object: nil)
         }
     }
 

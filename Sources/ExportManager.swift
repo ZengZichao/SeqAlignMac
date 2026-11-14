@@ -313,7 +313,7 @@ enum ExportManager {
 
         // 6. 名称列分隔线
         border.setStroke()
-        cg.setLineWidth(1)
+        cg.setLineWidth(Minimal.hairline)
         cg.move(to: CGPoint(x: nameW, y: 0))
         cg.addLine(to: CGPoint(x: nameW, y: height))
         cg.strokePath()

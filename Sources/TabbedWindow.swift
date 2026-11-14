@@ -103,6 +103,9 @@ final class WindowTabsState: ObservableObject {
 
 struct WindowRootView: View {
     @StateObject private var tabState = WindowTabsState()
+    // 主题交给 SwiftUI 管理：标题栏、弹窗、原生控件随之取色。
+    // 手改 window.appearance 会在 SwiftUI 重建时被复位，出现窗口层浅、画布层深的分裂。
+    @AppStorage("SeqAlignMac.appearance") private var appearanceRaw = "system"
     @State private var windowRef: NSWindow?
     @State private var didSetupWindow = false
     @State private var delegateHandler: WindowDelegateHandler?
@@ -141,6 +144,8 @@ struct WindowRootView: View {
             didSetupWindow = true
             setupWindow(w)
         })
+        .preferredColorScheme(appearanceRaw == "dark" ? .dark
+                              : appearanceRaw == "light" ? .light : nil)
         .onAppear {
             if tabState.tabs.isEmpty {
                 tabState.addTab()

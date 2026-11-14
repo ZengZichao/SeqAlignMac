@@ -246,6 +246,8 @@ final class AppStrings {
         qualityCharset: String,
         settingsTitle: String,
         settingsAppearance: String,
+        settingsTheme: String,
+        settingsCanvas: String,
         settingsLight: String,
         settingsDark: String,
         settingsSystem: String,
@@ -683,6 +685,8 @@ final class AppStrings {
         self.qualityCharset = qualityCharset
         self.settingsTitle = settingsTitle
         self.settingsAppearance = settingsAppearance
+        self.settingsTheme = settingsTheme
+        self.settingsCanvas = settingsCanvas
         self.settingsLight = settingsLight
         self.settingsDark = settingsDark
         self.settingsSystem = settingsSystem
@@ -1161,6 +1165,8 @@ final class AppStrings {
 
     let settingsTitle: String
     let settingsAppearance: String
+    let settingsTheme: String
+    let settingsCanvas: String
     let settingsLight: String
     let settingsDark: String
     let settingsSystem: String
@@ -1494,19 +1500,19 @@ final class AppStrings {
         consensusMode: "共识模式", consensusMajority: "多数规则",
         consensusIUPAC: "IUPAC 简并", consensusStrict: "严格共识",
         settingsCodonTriplet: "密码子三联体显示（每 3 列分组）",
-        translateNameOption: "序列名处理:", translateKeepOriginal: "保留原名",
+        translateNameOption: "序列名处理", translateKeepOriginal: "保留原名",
         translateAddSuffix: "加 _AA 后缀", translateSixFrameOverview: "六阅读框概览",
         translateHighlightStop: "高亮终止密码子", translateHighlightStart: "高亮起始密码子",
         exportSequence: "序列", exportImage: "图像",
         exportFASTA: "FASTA", exportNEXUS: "NEXUS", exportPHYLIP: "PHYLIP",
         exportCLUSTAL: "CLUSTAL", exportMSF: "MSF",
-        toolbarRunMSA: "对齐", helpRunMSA: "调用外部比对器对未比对序列进行多重比对 (Cmd+Shift+B)",
+        toolbarRunMSA: "比对", helpRunMSA: "调用外部比对器对未比对序列进行多重比对 (Cmd+Shift+B)",
         helpTranslateDisabled: "仅适用于核酸序列", helpPrimerDisabled: "仅适用于核酸序列",
         toastGapColsRemoved: "已去除全空位列", toastHighGapColsRemoved: "已去除高空位列 (>50%)",
         toastSortByName: "已按名称排序", toastSortBySimilarity: "已按相似度排序",
         toastSortByGC: "已按 GC 含量排序", toastSortByLength: "已按长度排序",
         toastSortByLengthNoGaps: "已按无空位长度排序", toastReverseComplement: "已反向互补",
-        searchPlaceholderContent: "搜索残基或简并模式",
+        searchPlaceholderContent: "搜索残基或简并碱基",
         searchPlaceholderContentRegex: "残基正则表达式",
         searchPlaceholderName: "搜索序列名称",
         searchPlaceholderNameRegex: "名称正则表达式",
@@ -1527,7 +1533,7 @@ final class AppStrings {
         statsTotalCols: "总列数", statsConservation: "保守度分布",
         statsHighConserved: "高保守列 ≥80%", statsConservationHint: "每列一致度五档分布，灰阶越深保守度越高",
         statsConsensus: "共识序列", statsConsensusCopy: "复制共识序列", statsConsensusCopied: "共识序列已复制", statsCursor: "光标",
-        statsEmptyTitle: "未打开比对", statsEmptyDesc: "",
+        statsEmptyTitle: "未打开文件", statsEmptyDesc: "",
         statsNoData: "无数据", statsComputing: "计算中",
         emptyTitle: "打开序列文件",
         emptyDesc1: "支持 FASTA、NEXUS、PHYLIP、CLUSTAL、MSF、Stockholm 与 FASTQ",
@@ -1539,8 +1545,9 @@ final class AppStrings {
         aboutRefs: "Tm 计算依据 SantaLucia 1998；密码子表来自 NCBI",
         aboutLicense: "MIT 许可证",
         guideTitle: "新手向导", guideStart: "开始",
-        qualityTitle: "比对质量", qualityNoFile: "未打开比对文件", qualityCharset: "NEXUS 字符集",
-        settingsTitle: "偏好设置", settingsAppearance: "外观",
+        qualityTitle: "比对质量", qualityNoFile: "未打开文件", qualityCharset: "NEXUS 字符集",
+        settingsTitle: "设置", settingsAppearance: "外观",
+        settingsTheme: "主题", settingsCanvas: "画布",
         settingsLight: "浅色", settingsDark: "深色", settingsSystem: "跟随系统",
         settingsColorScheme: "默认配色", settingsFontSize: "默认字号",
         settingsShowConsensus: "显示共识序列",
@@ -1579,7 +1586,7 @@ final class AppStrings {
         translateTitle: "翻译", translateCodeTable: "遗传密码表",
         translateFrame: "阅读框", translateMode: "显示",
         translateModeCodon: "密码子", translateModeAA: "氨基酸",
-        translateModeBoth: "密码子与氨基酸", translateModeIgnoreGaps: "忽略空位",
+        translateModeBoth: "两者", translateModeIgnoreGaps: "忽略空位",
         translateNewWindow: "在新窗口打开",
         translateBtn: "翻译",
         unsavedTitle: "未保存的更改",
@@ -1604,7 +1611,7 @@ final class AppStrings {
         menuInsertGap: "插入空位", menuDeleteSeq: "删除选中序列",
         menuMoveSeq: "移动序列", menuRenameSeq: "重命名序列",
         menuView: "视图", menuTools: "工具", menuAppearance: "外观", menuLanguage: "语言",
-        menuSettings: "偏好设置…", menuHelp: "帮助", menuGuide: "新手向导",
+        menuSettings: "设置…", menuHelp: "帮助", menuGuide: "新手向导",
         menuLoadExample: "载入示例", menuAbout: "关于 SeqAlignMac",
         menuRunAlign: "运行比对", menuTranslate: "翻译", menuPrimer: "引物计算",
         menuQuality: "比对质量", menuSearch: "搜索", menuFindNext: "查找下一处",
@@ -1718,7 +1725,7 @@ final class AppStrings {
         consensusMode: "Consensus Mode", consensusMajority: "Majority Rule",
         consensusIUPAC: "IUPAC Degenerate", consensusStrict: "Strict",
         settingsCodonTriplet: "Codon Triplet Display (group every 3 cols)",
-        translateNameOption: "Sequence Name:", translateKeepOriginal: "Keep Original",
+        translateNameOption: "Sequence Name", translateKeepOriginal: "Keep Original",
         translateAddSuffix: "Add _AA Suffix", translateSixFrameOverview: "Six-Frame Overview",
         translateHighlightStop: "Highlight Stop Codons", translateHighlightStart: "Highlight Start Codons",
         exportSequence: "Sequence", exportImage: "Image",
@@ -1752,7 +1759,7 @@ final class AppStrings {
         statsTotalCols: "Total columns", statsConservation: "Conservation",
         statsHighConserved: "Highly conserved ≥80%", statsConservationHint: "Five-bin identity distribution; darker bins are more conserved",
         statsConsensus: "Consensus", statsConsensusCopy: "Copy consensus", statsConsensusCopied: "Consensus copied", statsCursor: "Cursor",
-        statsEmptyTitle: "No alignment open", statsEmptyDesc: "",
+        statsEmptyTitle: "No file open", statsEmptyDesc: "",
         statsNoData: "No data", statsComputing: "Computing",
         emptyTitle: "Open a sequence file",
         emptyDesc1: "FASTA, NEXUS, PHYLIP, CLUSTAL, MSF, Stockholm and FASTQ",
@@ -1764,8 +1771,9 @@ final class AppStrings {
         aboutRefs: "Tm calculation follows SantaLucia 1998; codon tables from NCBI",
         aboutLicense: "MIT License",
         guideTitle: "Quick Guide", guideStart: "Start",
-        qualityTitle: "Alignment Quality", qualityNoFile: "No alignment file open", qualityCharset: "NEXUS charsets",
-        settingsTitle: "Preferences", settingsAppearance: "Appearance",
+        qualityTitle: "Alignment Quality", qualityNoFile: "No file open", qualityCharset: "NEXUS charsets",
+        settingsTitle: "Settings", settingsAppearance: "Appearance",
+        settingsTheme: "Theme", settingsCanvas: "Canvas",
         settingsLight: "Light", settingsDark: "Dark", settingsSystem: "System",
         settingsColorScheme: "Default scheme", settingsFontSize: "Default size",
         settingsShowConsensus: "Show consensus",
@@ -1804,7 +1812,7 @@ final class AppStrings {
         translateTitle: "Translate", translateCodeTable: "Genetic code",
         translateFrame: "Reading frame", translateMode: "Display",
         translateModeCodon: "Codons", translateModeAA: "Amino acids",
-        translateModeBoth: "Codons and amino acids", translateModeIgnoreGaps: "Ignore gaps",
+        translateModeBoth: "Both", translateModeIgnoreGaps: "Ignore gaps",
         translateNewWindow: "Open in new window",
         translateBtn: "Translate",
         unsavedTitle: "Unsaved Changes",
@@ -1829,7 +1837,7 @@ final class AppStrings {
         menuInsertGap: "Insert Gap", menuDeleteSeq: "Delete Selected Sequence",
         menuMoveSeq: "Move Sequence", menuRenameSeq: "Rename Sequence",
         menuView: "View", menuTools: "Tools", menuAppearance: "Appearance", menuLanguage: "Language",
-        menuSettings: "Preferences…", menuHelp: "Help", menuGuide: "Quick Guide",
+        menuSettings: "Settings…", menuHelp: "Help", menuGuide: "Quick Guide",
         menuLoadExample: "Load Example", menuAbout: "About SeqAlignMac",
         menuRunAlign: "Run Alignment", menuTranslate: "Translate", menuPrimer: "Primer",
         menuQuality: "Alignment Quality", menuSearch: "Search", menuFindNext: "Find Next",

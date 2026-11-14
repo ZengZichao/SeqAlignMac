@@ -204,15 +204,21 @@ struct ExportPreviewSheet: View {
                 // 选项：格式 / 范围 / 尺寸
                 VStack(alignment: .leading, spacing: Minimal.space3) {
                     SheetSectionTitle(text: L.s.exportPreviewFormat)
-                    Picker("", selection: $model.format) {
-                        Text("PNG").tag(ExportFormat.png)
-                        Text("PDF").tag(ExportFormat.pdf)
-                        Text("SVG").tag(ExportFormat.svg)
-                    }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
-                    .frame(width: 200)
-                    .onChange(of: model.format) { _, _ in model.generatePreview() }
+                    MinimalSegmentedControl(
+                        options: [
+                            .init(title: "PNG", value: ExportFormat.png),
+                            .init(title: "PDF", value: ExportFormat.pdf),
+                            .init(title: "SVG", value: ExportFormat.svg),
+                        ],
+                        selection: Binding(
+                            get: { model.format },
+                            set: { newValue in
+                                model.format = newValue
+                                model.generatePreview()
+                            }
+                        ),
+                        width: 200
+                    )
 
                     SheetHairline()
 

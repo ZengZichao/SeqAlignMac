@@ -334,7 +334,6 @@ extension ContentView {
             SidebarMenuButton(
                 title: L.s.exportImage,
                 systemImage: "photo",
-                showChevron: false,
                 entries: [
                     .item(L.s.exportPreviewTitle) {
                         NotificationCenter.default.post(name: .showExportPreview, object: nil)
@@ -352,7 +351,6 @@ extension ContentView {
             SidebarMenuButton(
                 title: L.s.exportSequence,
                 systemImage: "doc.text",
-                showChevron: false,
                 entries: [
                     .item(L.s.exportFASTA) { SaveManager.shared.saveAs(format: .fasta) },
                     .item(L.s.exportNEXUS) { SaveManager.shared.saveAs(format: .nexus) },

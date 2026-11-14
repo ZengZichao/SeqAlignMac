@@ -490,14 +490,14 @@ final class AlignmentCanvasView: NSView {
         // 9. 绘制名称列分隔线（issue 3：移除「可拖拽手柄」小药丸与两条横线，
         // 保留细分隔线 + hover/drag 调整宽度能力 —— 视觉更干净）
         ctx.setStrokeColor(Minimal.border(dark: self.isDarkAppearance).cgColor)
-        ctx.setLineWidth(1)
+        ctx.setLineWidth(Minimal.hairline)
         ctx.move(to: CGPoint(x: nameColWidth, y: 0))
         ctx.addLine(to: CGPoint(x: nameColWidth, y: bounds.height))
         ctx.strokePath()
-        // hover 时把分隔线略加粗，作为「可拖动」的唯一视觉线索（替代原手柄）
+        // hover 时只换颜色、不加粗：线宽恒定 0.5pt，可拖动与否由颜色深浅表达
         if isNearNameResize {
             ctx.setStrokeColor(Minimal.primary(dark: self.isDarkAppearance).cgColor)
-            ctx.setLineWidth(2)
+            ctx.setLineWidth(Minimal.hairline)
             ctx.move(to: CGPoint(x: nameColWidth, y: 0))
             ctx.addLine(to: CGPoint(x: nameColWidth, y: bounds.height))
             ctx.strokePath()
@@ -506,7 +506,7 @@ final class AlignmentCanvasView: NSView {
         // 10. 焦点环（Bug #3：画布为第一响应者时绘制细焦点环，让用户知道方向键可用）
         if hasFocus {
             ctx.setStrokeColor(Minimal.primary(dark: self.isDarkAppearance).withAlphaComponent(0.5).cgColor)
-            ctx.setLineWidth(1)
+            ctx.setLineWidth(Minimal.hairline)
             ctx.move(to: CGPoint(x: 0.5, y: 0.5))
             ctx.addLine(to: CGPoint(x: bounds.maxX - 0.5, y: 0.5))
             ctx.addLine(to: CGPoint(x: bounds.maxX - 0.5, y: bounds.maxY - 0.5))
@@ -528,13 +528,13 @@ final class AlignmentCanvasView: NSView {
             drawNames(ctx, align, minRow: minRow, maxRow: maxRow, nameX: pin.lowerBound)
             // 右缘分隔线（hover 改宽时加粗提示，与原始带一致）
             ctx.setStrokeColor(Minimal.border(dark: self.isDarkAppearance).cgColor)
-            ctx.setLineWidth(1)
+            ctx.setLineWidth(Minimal.hairline)
             ctx.move(to: CGPoint(x: pin.upperBound, y: 0))
             ctx.addLine(to: CGPoint(x: pin.upperBound, y: bounds.height))
             ctx.strokePath()
             if isNearNameResize {
                 ctx.setStrokeColor(Minimal.primary(dark: self.isDarkAppearance).cgColor)
-                ctx.setLineWidth(2)
+                ctx.setLineWidth(Minimal.hairline)
                 ctx.move(to: CGPoint(x: pin.upperBound, y: 0))
                 ctx.addLine(to: CGPoint(x: pin.upperBound, y: bounds.height))
                 ctx.strokePath()
@@ -551,45 +551,33 @@ final class AlignmentCanvasView: NSView {
         ctx.setFillColor(Minimal.card(dark: dark).cgColor)
         ctx.fill(CGRect(x: 0, y: rulerY, width: bounds.width, height: rulerHeight))
 
-        let baseSize = labelFont.pointSize
-        // 两档缩小字号 + 段落样式提升到循环外
-        let smallFont = NSFont.systemFont(ofSize: max(7, baseSize - 3))
-        let midFont = NSFont.systemFont(ofSize: max(8, baseSize - 1))
-        let smallTextH = smallFont.ascender - smallFont.descender
-        let midTextH = midFont.ascender - midFont.descender
-        let baseTextH = labelFont.ascender - labelFont.descender
-        let paragraph = NSMutableParagraphStyle()
-        paragraph.alignment = .right
+        // 列号是界面刻度，不随数据缩放：固定 12pt，与其余 UI 文字同档
+        let numberFont = NSFont.monospacedDigitSystemFont(ofSize: Minimal.fontXXS, weight: .regular)
+        let textH = numberFont.ascender - numberFont.descender
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: numberFont,
+            .foregroundColor: Minimal.textMuted(dark: dark)
+        ]
         let borderCG = Minimal.border(dark: dark).cgColor
 
-        for col in minCol..<maxCol {
-            if col % 10 == 0 || col == 0 {
-                let x = nameColWidth + CGFloat(col) * cellWidth
-                let label = "\(col + 1)"
-                let digits = label.count
-                // 大数字缩小字号，避免与相邻标号重叠（3.5）
-                let font: NSFont = digits > 4 ? smallFont : (digits > 3 ? midFont : labelFont)
-                let textH = digits > 4 ? smallTextH : (digits > 3 ? midTextH : baseTextH)
-                let attrs: [NSAttributedString.Key: Any] = [
-                    .font: font,
-                    .foregroundColor: Minimal.textMuted(dark: dark),
-                    .paragraphStyle: paragraph
-                ]
-                // 在单元格内右对齐 + 垂直居中；避免 draw(at:) 基线语义在 flipped 视图中错位
-                // issue 5：标尺列号也统一为「中部对齐」，与行号 / 名称 / 残基视觉同排
-                (label as NSString).draw(in: CGRect(x: x,
-                                     y: rulerY + max(0, (rulerHeight - textH) / 2),
-                                     width: cellWidth,
-                                     height: textH),
+        for col in minCol..<maxCol where col % 10 == 0 {
+            let x = nameColWidth + CGFloat(col) * cellWidth
+            let label = "\(col + 1)" as NSString
+            // 右边缘贴住列分隔线，宽度按文字实测、向左延伸进左侧空格。
+            // 把标签塞进 cellWidth 会裁掉高位（"11" 只剩 "1"），列号读不出来。
+            let textW = label.size(withAttributes: attrs).width
+            (label).draw(in: CGRect(x: x + cellWidth - textW - 2,
+                                    y: rulerY + max(0, (rulerHeight - textH) / 2),
+                                    width: textW + 1,
+                                    height: textH),
                          withAttributes: attrs)
 
-                // 垂直网格线（贯穿数据区，辅助定位；每 10 列）
-                ctx.setStrokeColor(borderCG)
-                ctx.setLineWidth(0.5)
-                ctx.move(to: CGPoint(x: x, y: rulerY))
-                ctx.addLine(to: CGPoint(x: x, y: bounds.height))
-                ctx.strokePath()
-            }
+            // 垂直网格线（贯穿数据区，辅助定位；每 10 列）
+            ctx.setStrokeColor(borderCG)
+            ctx.setLineWidth(Minimal.hairline)
+            ctx.move(to: CGPoint(x: x, y: rulerY))
+            ctx.addLine(to: CGPoint(x: x, y: bounds.height))
+            ctx.strokePath()
         }
     }
 
@@ -683,32 +671,17 @@ final class AlignmentCanvasView: NSView {
         ctx.fill(CGRect(x: 0, y: railY, width: bounds.width, height: conservationRailHeight))
 
         guard let stats = cachedStats else { return }
-        // 每列 withAlphaComponent 新建颜色改为缓存——极简方案按灰阶档位缓存；
-        // 其他方案按（色板索引 × α 量化档）缓存，一帧内每档只做一次 NSColor→CGColor
-        var minimalCGCache: [Int: CGColor] = [:]
-        var paletteCGCache: [Int: CGColor] = [:]
-        func quantizedCG(_ color: NSColor, alpha: CGFloat, paletteKey: Int? = nil) -> CGColor {
-            let key = Int((alpha * 100).rounded())
-            if let paletteKey {
-                let combined = paletteKey * 101 + key
-                if let cached = paletteCGCache[combined] { return cached }
-                let cg = color.withAlphaComponent(CGFloat(key) / 100.0).cgColor
-                paletteCGCache[combined] = cg
-                return cg
-            }
-            if let cached = minimalCGCache[key] { return cached }
-            let cg = color.withAlphaComponent(CGFloat(key) / 100.0).cgColor
-            minimalCGCache[key] = cg
+        // 轨道语义是「这一列有多保守」，不是「这一列是什么残基」：统一用灰阶热力，
+        // 把色相完整留给下方的残基字母。灰阶只有 5 档，直接缓存 5 个 CGColor。
+        var railCGCache: [Int: CGColor] = [:]
+        let gapCG = Minimal.gapTint(dark: dark).cgColor
+        func railCG(_ consensus: UInt8, identity: Double) -> CGColor {
+            if consensus == 0x2D { return gapCG }
+            let level = min(4, Int((max(0, min(1, identity)) * 4).rounded()))
+            if let cached = railCGCache[level] { return cached }
+            let cg = Minimal.railColor(identity: identity, dark: dark).cgColor
+            railCGCache[level] = cg
             return cg
-        }
-        func baseCG(_ consensus: UInt8, identity: Double) -> CGColor {
-            if colorScheme == .minimal {
-                return quantizedCG(Minimal.chartColor(identity: identity, dark: dark), alpha: 1.0)
-            }
-            if consensus == 0x2D { return Minimal.gapTint(dark: dark).cgColor }
-            let idx = Int(ColorComputer.colorIndex(for: consensus, scheme: colorScheme))
-            return quantizedCG(ColorResolver.palette(colorScheme, index: idx, dark: dark).bg,
-                               alpha: 0.35 + 0.65 * identity, paletteKey: idx)
         }
 
         // 钳制上界不低于 minCol，防止 Range 下界 > 上界闪退
@@ -717,20 +690,14 @@ final class AlignmentCanvasView: NSView {
             let identity = stats.identity[col]
             let consensus = stats.consensus[col]
             let x = nameColWidth + CGFloat(col) * cellWidth
-            // 跟随所选配色（极简=灰阶；其他=共识残基配色色，透明度随一致度衰减，
-            // 保留「一致度越高越实、越低越淡」的原始语义）
-            ctx.setFillColor(baseCG(consensus, identity: identity))
-            ctx.fill(CGRect(x: x, y: railY + 1, width: cellWidth, height: conservationRailHeight - 2))
-            // 完全保守的列加一道亮顶线，强调"高保守区"
-            if identity >= 1.0 {
-                ctx.setFillColor(baseCG(consensus, identity: 1.0))
-                ctx.fill(CGRect(x: x, y: railY, width: cellWidth, height: 2))
-            }
+            // 一致度越高越深；空位列统一用空位底色，不再另加高亮层
+            ctx.setFillColor(railCG(consensus, identity: identity))
+            fillCellAligned(ctx, CGRect(x: x, y: railY + 1, width: cellWidth, height: conservationRailHeight - 2))
         }
 
         // 轨道与标尺之间的细分隔线
         ctx.setStrokeColor(Minimal.border(dark: dark).cgColor)
-        ctx.setLineWidth(0.5)
+        ctx.setLineWidth(Minimal.hairline)
         ctx.move(to: CGPoint(x: 0, y: railY + conservationRailHeight))
         ctx.addLine(to: CGPoint(x: bounds.width, y: railY + conservationRailHeight))
         ctx.strokePath()
@@ -742,7 +709,7 @@ final class AlignmentCanvasView: NSView {
         let identity = stats.identity[column]
         let consChar = (cons == 0x2D) ? "—" : String(UnicodeScalar(cons))
         let text = "列 \(column + 1)，共识 \(consChar)，一致度 \(Int(identity * 100))%"
-        let font = NSFont.systemFont(ofSize: 11, weight: .medium)
+        let font = NSFont.systemFont(ofSize: Minimal.fontXXS, weight: .medium)
         let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: Minimal.text(dark: self.isDarkAppearance)]
         let size = (text as NSString).size(withAttributes: attrs)
         let padX: CGFloat = 8, padY: CGFloat = 5
@@ -757,7 +724,7 @@ final class AlignmentCanvasView: NSView {
         let path = NSBezierPath(roundedRect: tipRect, xRadius: 6, yRadius: 6)
         path.fill()
         ctx.setStrokeColor(Minimal.borderStrong(dark: self.isDarkAppearance).cgColor)
-        ctx.setLineWidth(1)
+        ctx.setLineWidth(Minimal.hairline)
         path.stroke()
 
         (text as NSString).draw(in: CGRect(x: tipX + padX, y: tipY + padY, width: size.width, height: size.height),
@@ -826,7 +793,7 @@ final class AlignmentCanvasView: NSView {
 
             if let fill = consensusFillCG(res, identity: identity) {
                 ctx.setFillColor(fill)
-                ctx.fill(CGRect(x: x, y: consY, width: cellWidth, height: cellHeight))
+                fillCellAligned(ctx, CGRect(x: x, y: consY, width: cellWidth, height: cellHeight))
             }
 
             // 密度模式——列宽过小时共识字形同样跳过，仅保留底色线索
@@ -955,14 +922,26 @@ final class AlignmentCanvasView: NSView {
         glyphCacheFontSize = font.pointSize
     }
 
-    /// 矩形合股为单条 path 一次填充（替代每格 setFillColor+fill）
+    /// 矩形合股为单条 path 一次填充（替代每格 setFillColor+fill）。
+    /// 填色时关掉抗锯齿：列宽是分数值，相邻色块若各自做半像素混合，
+    /// 每条列边界都会留一道 1px 浅缝，整片序列看起来像被切成竖条。
     @inline(__always)
     private func fillBundled(_ ctx: CGContext, _ rects: [CGRect]) {
         guard !rects.isEmpty else { return }
+        ctx.setShouldAntialias(false)
         let path = CGMutablePath()
         for rect in rects { path.addRect(rect) }
         ctx.addPath(path)
         ctx.fillPath()
+        ctx.setShouldAntialias(true)
+    }
+
+    /// 单格填充：同上，用于轨道与共识行这种逐格填色的路径
+    @inline(__always)
+    private func fillCellAligned(_ ctx: CGContext, _ rect: CGRect) {
+        ctx.setShouldAntialias(false)
+        ctx.fill(rect)
+        ctx.setShouldAntialias(true)
     }
 
     /// 按色组分批绘制字形（每批 ≤512 个；要求 textMatrix 为 identity，

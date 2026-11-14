@@ -74,42 +74,42 @@ struct TranslationOptionsView: View {
                 }
 
                 settingRow(L.s.translateFrame) {
-                    Picker("", selection: $selectedFrame) {
-                        Text("-3").tag(-3)
-                        Text("-2").tag(-2)
-                        Text("-1").tag(-1)
-                        Text("+1").tag(0)
-                        Text("+2").tag(1)
-                        Text("+3").tag(2)
-                    }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
-                    .frame(width: 280)
-                    .accessibilityLabel(L.s.translateFrame)
+                    MinimalSegmentedControl(
+                        options: [
+                            .init(title: "-3", value: -3),
+                            .init(title: "-2", value: -2),
+                            .init(title: "-1", value: -1),
+                            .init(title: "+1", value: 0),
+                            .init(title: "+2", value: 1),
+                            .init(title: "+3", value: 2),
+                        ],
+                        selection: $selectedFrame,
+                        width: 280
+                    )
                 }
 
                 settingRow(L.s.translateMode) {
-                    Picker("", selection: $selectedMode) {
-                        Text(L.s.translateModeCodon).tag(TranslationDisplayMode.codonOnly)
-                        Text(L.s.translateModeAA).tag(TranslationDisplayMode.aminoAcidOnly)
-                        Text(L.s.translateModeBoth).tag(TranslationDisplayMode.both)
-                        Text(L.s.translateModeIgnoreGaps).tag(TranslationDisplayMode.ignoreGaps)
-                    }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
-                    .frame(width: 340)
-                    .accessibilityLabel(L.s.translateMode)
+                    MinimalSegmentedControl(
+                        options: [
+                            .init(title: L.s.translateModeCodon, value: TranslationDisplayMode.codonOnly),
+                            .init(title: L.s.translateModeAA, value: TranslationDisplayMode.aminoAcidOnly),
+                            .init(title: L.s.translateModeBoth, value: TranslationDisplayMode.both),
+                            .init(title: L.s.translateModeIgnoreGaps, value: TranslationDisplayMode.ignoreGaps),
+                        ],
+                        selection: $selectedMode,
+                        width: 340
+                    )
                 }
 
                 settingRow(L.s.translateNameOption) {
-                    Picker("", selection: $nameAddSuffix) {
-                        Text(L.s.translateKeepOriginal).tag(false)
-                        Text(L.s.translateAddSuffix).tag(true)
-                    }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
-                    .frame(width: 280)
-                    .accessibilityLabel(L.s.translateNameOption)
+                    MinimalSegmentedControl(
+                        options: [
+                            .init(title: L.s.translateKeepOriginal, value: false),
+                            .init(title: L.s.translateAddSuffix, value: true),
+                        ],
+                        selection: $nameAddSuffix,
+                        width: 280
+                    )
                 }
 
                 SheetHairline()

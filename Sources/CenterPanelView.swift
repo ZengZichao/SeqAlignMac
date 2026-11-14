@@ -291,7 +291,7 @@ struct ErrorBannerView: View {
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: Minimal.radiusSM, style: .continuous)
-                        .stroke(Color(Minimal.destructive(dark: dark).withAlphaComponent(0.35)),
+                        .stroke(Color(Minimal.destructiveBorder(dark: dark)),
                                 lineWidth: Minimal.hairline)
                 )
                 .padding(.horizontal, Minimal.space3)
@@ -438,7 +438,7 @@ extension ContentView {
         }
         .font(.system(size: Minimal.fontXXS))
         .padding(.horizontal, Minimal.space3)
-        .frame(height: 26)
+        .frame(height: Minimal.statusBarH)
         .background(Color(Minimal.panel(dark: isDarkAppearance)))
         .overlay(alignment: .top) {
             Rectangle().fill(Color(Minimal.border(dark: isDarkAppearance)))

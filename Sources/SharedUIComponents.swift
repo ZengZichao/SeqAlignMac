@@ -15,11 +15,25 @@ import SwiftUI
 /// 依赖跟踪；应用处于「跟随系统」时，用户在系统设置切深浅色，SwiftUI 树能否
 /// 整体重算没有保证。本修饰符挂一个观察 NSView（viewDidChangeEffectiveAppearance
 /// 与 PanelResizer 同一机制），系统外观变化时触发所在视图树重算。
+extension Notification.Name {
+    /// 主题应用完成（`AppearanceManager.apply` 在全部窗口改成新外观之后发出）。
+    /// 显式发一次是必需的：SwiftUI 不跟踪 AppKit 的全局取色，环境值的传播时序
+    /// 又可能在弹窗关闭/窗口切换时短暂串味，导致某一栏停在旧明暗。
+    static let seqAlignAppearanceChanged = Notification.Name("SeqAlignMac.appearanceChanged")
+}
+
 struct AppearanceObservingModifier: ViewModifier {
-    @State private var tick = 0
+    @Environment(\.colorScheme) private var scheme
+    @State private var epoch = 0
+    private var identity: String { "\(scheme)-\(epoch)" }
     func body(content: Content) -> some View {
         content
-            .background(AppearanceObservingRepresentable(onChange: { tick += 1 }).frame(width: 0, height: 0))
+            // 身份 = 环境明暗 + 主题纪元：跟随系统时靠前者，手动切主题时靠后者，
+            // 两者都让整棵子树重建一次，读 AppKit 全局颜色的每一层重新取色。
+            .id(identity)
+            .onReceive(NotificationCenter.default.publisher(for: .seqAlignAppearanceChanged)) { _ in
+                epoch += 1
+            }
     }
 }
 
@@ -57,14 +71,97 @@ extension View {
     /// 弹窗容器：只铺 surface 底色。圆角与投影由系统 sheet 窗口提供，
     /// 内容区再画一层圆角描边只会形成“卡中卡”的双重边框。
     func minimalSheetContainer() -> some View {
-        let dark = NSAppearance.isDarkNow
-        return self
+        // Esc 处理挂在宿主外面：它的响应链属于弹窗窗口本身，
+        // 不应随内部明暗重建（id 变化）一起被换掉
+        SheetAppearanceRoot(content: self)
+            .sheetEscapeToDismiss()
+    }
+}
+
+/// 弹窗外观宿主。
+/// 明暗不从 AppKit 全局现读：窗口 appearance 一变，读 colorScheme 的 body
+/// 必然重算，把它当身份让整棵弹窗内容重建一次，各层都按新明暗重新取色。
+private struct SheetAppearanceRoot<Content: View>: View {
+    let content: Content
+    @Environment(\.colorScheme) private var scheme
+    @State private var epoch = 0
+
+    init(content: Content) {
+        self.content = content
+    }
+
+    private var dark: Bool { NSAppearance.isDarkNow }
+    private var identity: String { "\(scheme)-\(epoch)" }
+
+    var body: some View {
+        content
             .background(Color(Minimal.surface(dark: dark)))
             // 弹窗内 NSScrollView 一并应用细滚动条
             .thinScrollbars()
-            // 弹窗根挂接系统外观变化监听
-            .observingAppearanceChanges()
+            // sheet 自带独立环境，不继承主窗口的 tint；统一压到主色，
+            // 否则勾选框、开关会退回系统蓝，跳出 Radix 色板
+            .tint(Color(Minimal.primary(dark: dark)))
+            .id(identity)
+            .onReceive(NotificationCenter.default.publisher(for: .seqAlignAppearanceChanged)) { _ in
+                epoch += 1
+            }
     }
+}
+
+/// 弹窗统一响应 Esc：走 SwiftUI 的 dismiss，同步回写 isPresented 绑定。
+/// 不用 onExitCommand——它依赖弹窗内的焦点链，焦点落在滚动区/分段控件时收不到键。
+/// 改为本地按键监听，只拦截本弹窗窗口的 Esc（53）。
+private struct SheetEscapeToDismiss: ViewModifier {
+    @Environment(\.dismiss) private var dismiss
+    func body(content: Content) -> some View {
+        content.background(
+            EscapeKeyCatcher { dismiss() }
+                .frame(width: 0, height: 0)
+        )
+    }
+}
+
+private struct EscapeKeyCatcher: NSViewRepresentable {
+    let onEscape: () -> Void
+
+    func makeNSView(context: Context) -> NSView { EscapeKeyView(onEscape: onEscape) }
+    func updateNSView(_ nsView: NSView, context: Context) {}
+
+    final class EscapeKeyView: NSView {
+        private var monitor: Any?
+        private let onEscape: () -> Void
+
+        init(onEscape: @escaping () -> Void) {
+            self.onEscape = onEscape
+            super.init(frame: .zero)
+        }
+        required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            guard window != nil else {
+                if let monitor { NSEvent.removeMonitor(monitor) }
+                monitor = nil
+                return
+            }
+            guard monitor == nil else { return }
+            monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+                // 不按 event.window 过滤：弹窗的 key window 在本应用里可能被标签窗口
+                // 抢走，按窗口比对会漏掉 Esc。只要本视图仍在可见窗口里，Esc 就归它处理。
+                guard let self, event.keyCode == 53, self.window?.isVisible == true else { return event }
+                self.onEscape()
+                return nil
+            }
+        }
+
+        deinit {
+            if let monitor { NSEvent.removeMonitor(monitor) }
+        }
+    }
+}
+
+extension View {
+    func sheetEscapeToDismiss() -> some View { modifier(SheetEscapeToDismiss()) }
 }
 
 // MARK: - 侧栏按钮（图标 + 文字，水平排列）
@@ -508,20 +605,20 @@ struct EmptyStateView: View {
         VStack(spacing: Minimal.space5) {
             logoMark
                 .frame(width: 64, height: 64)
-            // 唯一的衬线标题：空状态是应用的第一屏，给一次性叙事语气，
-            // 其余界面一律无衬线，避免与工具性界面争夺注意力
+            // 标题用无衬线：中文下 serif 会静默落回黑体，同一处文案在中英文里
+            // 变成两种字体。衬线只留 Latin 字标（关于页的产品名）。
             Text(L.s.emptyTitle)
-                .font(.system(size: Minimal.font2XL, weight: .semibold, design: .serif))
+                .font(.system(size: Minimal.font2XL, weight: .semibold))
                 .foregroundColor(Color(Minimal.text(dark: isDarkAppearance)))
             HStack(spacing: Minimal.space3) {
                 // 两枚按钮共用同一宽度与高度，圆角矩形尺寸完全一致；
                 // 宽度按较长标签（English “Load Example”）预留，中文两侧留白对称
                 MinimalPrimaryButton(title: L.s.emptyOpenFile, systemImage: "folder",
-                                     height: Minimal.controlLG, minWidth: 132) {
+                                     height: Minimal.controlLG, minWidth: 148) {
                     OpenFileManager.shared.openFile()
                 }
                 MinimalSecondaryButton(title: L.s.emptyLoadExample, systemImage: "doc.text",
-                                       height: Minimal.controlLG, minWidth: 132) {
+                                       height: Minimal.controlLG, minWidth: 148) {
                     HelpManager.shared.loadExample()
                 }
             }

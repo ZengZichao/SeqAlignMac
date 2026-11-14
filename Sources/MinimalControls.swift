@@ -209,3 +209,81 @@ struct MinimalIconButton: View {
         .onHover { hovered = $0 }
     }
 }
+
+// MARK: - 分段控件
+
+/// 自绘分段控件（2–3 段、标签短）。
+/// 系统 `.segmented` 的选中底色由 AppKit 决定：暗色下只有约 1.6:1 的对比，
+/// 选中与未选中的文字亮度也几乎一致，状态读不出来，且颜色不在 Radix 色板内。
+/// 这里改用 gray-12 实底 + gray-1 文字，明暗两端都保持明确对比。
+struct MinimalSegmentedControl<Value: Hashable>: View {
+    struct Option {
+        let title: String
+        let value: Value
+    }
+
+    let options: [Option]
+    @Binding var selection: Value
+    /// 与同列其他控件同宽时传入，保证左缘落在同一条竖线上
+    var width: CGFloat? = nil
+
+    private var dark: Bool { NSAppearance.isDarkNow }
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(options.indices, id: \.self) { index in
+                SegmentCell(
+                    title: options[index].title,
+                    isSelected: options[index].value == selection,
+                    dark: dark,
+                    action: { selection = options[index].value }
+                )
+            }
+        }
+        .padding(2)
+        .frame(width: width)
+        .background(
+            RoundedRectangle(cornerRadius: Minimal.radiusSM, style: .continuous)
+                .fill(Color(Minimal.card(dark: dark)))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: Minimal.radiusSM, style: .continuous)
+                .stroke(Color(Minimal.border(dark: dark)), lineWidth: Minimal.hairline)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: Minimal.radiusSM, style: .continuous))
+    }
+}
+
+/// 分段单元：外层 6 圆角、四周内缩 2 → 内层 4，同心嵌套
+private struct SegmentCell: View {
+    let title: String
+    let isSelected: Bool
+    let dark: Bool
+    let action: () -> Void
+
+    @State private var hovered = false
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: Minimal.fontSM, weight: isSelected ? .medium : .regular))
+                .foregroundColor(Color(isSelected ? Minimal.onPrimary(dark: dark) : Minimal.textMuted(dark: dark)))
+                .lineLimit(1)
+                .frame(maxWidth: .infinity)
+                .frame(height: Minimal.controlH - 4)
+                .background(
+                    RoundedRectangle(cornerRadius: Minimal.radiusXS, style: .continuous)
+                        .fill(fillColor)
+                )
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(MinimalButtonStyle())
+        .onHover { hovered = $0 }
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private var fillColor: Color {
+        if isSelected { return Color(Minimal.primary(dark: dark)) }
+        return hovered ? Color(Minimal.hover(dark: dark)) : Color.clear
+    }
+}

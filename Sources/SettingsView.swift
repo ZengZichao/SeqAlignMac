@@ -47,19 +47,19 @@ struct SettingsView: View {
                         .padding(.bottom, Minimal.space2)
 
                     rows {
-                        settingRow(L.s.settingsAppearance) {
-                            Picker("", selection: Binding(
-                                get: { appearanceStore.mode },
-                                set: { appearanceStore.apply($0) }
-                            )) {
-                                Text(L.s.settingsLight).tag(AppearanceMode.light)
-                                Text(L.s.settingsDark).tag(AppearanceMode.dark)
-                                Text(L.s.settingsSystem).tag(AppearanceMode.system)
-                            }
-                            .pickerStyle(.segmented)
-                            .labelsHidden()
-                            .frame(width: controlWidth)
-                            .accessibilityLabel(L.s.settingsAppearance)
+                        settingRow(L.s.settingsTheme) {
+                            MinimalSegmentedControl(
+                                options: [
+                                    .init(title: L.s.settingsLight, value: AppearanceMode.light),
+                                    .init(title: L.s.settingsDark, value: AppearanceMode.dark),
+                                    .init(title: L.s.settingsSystem, value: AppearanceMode.system),
+                                ],
+                                selection: Binding(
+                                    get: { appearanceStore.mode },
+                                    set: { appearanceStore.apply($0) }
+                                ),
+                                width: controlWidth
+                            )
                         }
 
                         settingRow(L.s.settingsColorScheme) {
@@ -80,13 +80,19 @@ struct SettingsView: View {
                         }
 
                         settingRow(L.s.settingsFontSize) {
-                            Stepper(value: $workspace.fontSize, in: 8...28) {
+                            // 数值与加减器分开摆：Stepper 自带 label 内边距，
+                            // 会把数值推到控件列右侧，与其他行错开一格
+                            HStack(spacing: Minimal.space2) {
                                 Text("\(Int(workspace.fontSize)) pt")
                                     .monospacedDigit()
                                     .font(.system(size: Minimal.fontSM, design: .monospaced))
-                                    .frame(width: 40, alignment: .leading)
+                                    .lineLimit(1)
+                                    .fixedSize(horizontal: true, vertical: false)
+                                Stepper("", value: $workspace.fontSize, in: 8...28)
+                                    .labelsHidden()
                             }
                             .accessibilityLabel(L.s.settingsFontSize)
+                            .accessibilityValue("\(Int(workspace.fontSize)) pt")
                         }
                     }
 
@@ -94,7 +100,7 @@ struct SettingsView: View {
                         .padding(.vertical, Minimal.space4)
 
                     // 画布
-                    SheetSectionTitle(text: L.s.menuView)
+                    SheetSectionTitle(text: L.s.settingsCanvas)
                         .padding(.bottom, Minimal.space1)
 
                     VStack(alignment: .leading, spacing: Minimal.space1) {
@@ -190,6 +196,9 @@ struct SettingsView: View {
         .padding(Minimal.space5)
         .frame(width: 460)
         .frame(minHeight: 400, maxHeight: 540)
+        // 原生控件（分段、勾选）默认取系统蓝，这里统一压到主色（Radix gray-12 系），
+        // 面板里不允许出现调色板外的颜色
+        .tint(Color(Minimal.primary(dark: isDarkAppearance)))
         .minimalSheetContainer()
     }
 

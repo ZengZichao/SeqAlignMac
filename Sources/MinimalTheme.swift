@@ -85,6 +85,17 @@ enum Minimal {
         return isDark ? dark[index] : light[index]
     }
 
+    /// 两枚色板颜色按 t（0…1）混合：派生色仍然只由色板定义，
+    /// 不在代码里手写第二组十六进制
+    static func blend(_ a: NSColor, _ b: NSColor, _ t: CGFloat) -> NSColor {
+        guard let ca = a.usingColorSpace(.sRGB), let cb = b.usingColorSpace(.sRGB) else { return a }
+        let k = max(0, min(1, t))
+        return NSColor(srgbRed: ca.redComponent + (cb.redComponent - ca.redComponent) * k,
+                       green: ca.greenComponent + (cb.greenComponent - ca.greenComponent) * k,
+                       blue: ca.blueComponent + (cb.blueComponent - ca.blueComponent) * k,
+                       alpha: ca.alphaComponent + (cb.alphaComponent - ca.alphaComponent) * k)
+    }
+
     // MARK: - 颜色：语义层
 
     /// 应用背景（gray-1）
@@ -136,11 +147,10 @@ enum Minimal {
         step(grayLight, grayDark, 1, dark: dark)
     }
 
-    /// 实心底色悬停（gray-11 更深的一侧不可用，故用 gray-12 叠 8% 反色）
+    /// 实心底色悬停：gray-12 向 gray-1 混 10%。
+    /// 不另写一组十六进制——悬停态仍然是色板内的一个混合值，明暗两套自动反向。
     static func primaryHover(dark: Bool) -> NSColor {
-        dark
-            ? NSColor(srgbRed: 0.86, green: 0.86, blue: 0.86, alpha: 1)
-            : NSColor(srgbRed: 0.24, green: 0.24, blue: 0.24, alpha: 1)
+        blend(primary(dark: dark), onPrimary(dark: dark), 0.10)
     }
 
     // 兼容旧语义名：强调色不再另设色相，统一为 gray-12
@@ -188,6 +198,14 @@ enum Minimal {
         return dark ? chart[idx].dark : chart[idx].light
     }
 
+    /// 保守度轨道：5 档灰阶热力（gray 2/4/6/8/10）。
+    /// 轨道是正文上方的参照带，最深处止于 gray-10——不用 gray-12 的纯黑，
+    /// 否则一条全保守的带会比序列本身更抢眼。
+    static func railColor(identity: Double, dark: Bool) -> NSColor {
+        let idx = min(4, Int((max(0, min(1, identity)) * 4).rounded()))
+        return step(grayLight, grayDark, [2, 4, 6, 8, 10][idx], dark: dark)
+    }
+
     // 功能色：文字一律取第 11 步（Radix 指定的低对比文字步），实心点取第 9 步
     static func success(dark: Bool) -> NSColor {
         step(greenLight, greenDark, 11, dark: dark)
@@ -214,6 +232,10 @@ enum Minimal {
     /// 错误浅底（red-3）
     static func destructiveSoft(dark: Bool) -> NSColor {
         step(redLight, redDark, 3, dark: dark)
+    }
+    /// 错误浅底的边界（red-6）：浅底上的 0.5pt 边框用第 6 步，不用文字色降透明度
+    static func destructiveBorder(dark: Bool) -> NSColor {
+        step(redLight, redDark, 6, dark: dark)
     }
 
     /// 搜索高亮（blue-8，唯一保留的彩色语义）
@@ -302,8 +324,10 @@ enum Minimal {
 
     // ---- 控件高度（统一按钮 / 输入）----
     static let controlSM: CGFloat = 22   // 分段控件内段
-    static let controlH:  CGFloat = 28   // 按钮 / 输入框
+    static let controlH:  CGFloat = 28   // 按钮 / 输入框 / 状态栏
     static let controlLG: CGFloat = 36   // 主按钮（空状态）
+    /// 状态栏：与按钮同一高度，12pt 文字上下各留 8pt
+    static let statusBarH: CGFloat = 28
 
     // ---- 配色选择器宽度 ----
     static let schemePickerW: CGFloat = 260
@@ -351,7 +375,8 @@ extension NSColor {
 extension NSAppearance {
     /// 当前生效外观是否为深色（兼容 accessibilityHighContrast* 等派生外观）。
     static var isDarkNow: Bool {
-        NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        // 走主题设置而不是窗口/NSApp 的现读外观，见 AppearanceManager.isDark
+        AppearanceManager.shared.isDark
     }
     /// 指定外观实例的深色判定。
     func isDark() -> Bool {
