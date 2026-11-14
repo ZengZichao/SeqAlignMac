@@ -31,6 +31,10 @@ SeqAlignMac 是一款 macOS 原生多序列比对（MSA）查看、编辑与分�
 - **双语**：英文与简体中文界面，运行时可切换。
 - **外部比对器**：MAFFT（stdout 直读）、MUSCLE v5、ClustalW2 预设；大输出并发排空管道防死锁，结果格式自动检测。
 
+## v0.2.0 变更（2026-11）
+
+界面改版。所有界面统一到一套基于 Radix UI Colors 的视觉系统：单一中性色阶与语义步、16 / 13 / 12 三档字号、0.5pt 细线、4 / 6 / 10 同心圆角。移除装饰性卡片、阴影与入场动画；侧栏、统计面板、各类 Sheet、命令面板、导出预览与分析弹窗按信息优先级重排。引物计算合并为一次操作，搜索选项收进浮层，中英文文案按科研用户重写。核心解析、渲染与 CLI 行为不变。
+
 ## v0.1.0 变更（2026-09）
 
 首次公开发布。SeqAlignMac 是一款 macOS 原生多序列比对（MSA）查看、编辑与分析应用，使用 Swift 编写，在 SwiftUI 外壳中承载 AppKit 画布。
@@ -107,10 +111,10 @@ swift test        # 仅运行 SeqAlignCore 单元测试
   title     = {SeqAlignMac: A native macOS application for viewing, editing, and analysing multiple sequence alignments},
   year      = {2026},
   month     = sep,
-  note      = {v0.1.0},
+  note      = {v0.2.0},
   publisher = {Zenodo},
-  doi       = {10.5281/zenodo.23053514},
-  url       = {https://doi.org/10.5281/zenodo.23053514}
+  doi       = {10.5281/zenodo.23053513},
+  url       = {https://doi.org/10.5281/zenodo.23053513}
 }
 ```
 

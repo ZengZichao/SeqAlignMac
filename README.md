@@ -32,6 +32,10 @@ The application supports reading and writing seven alignment formats (FASTA, FAS
 - **Localisation**: English and Simplified Chinese interface, switchable at runtime.
 - **External aligners**: MAFFT (stdout capture), MUSCLE v5, and ClustalW2 presets; large outputs are drained concurrently to prevent pipe deadlocks, and result formats are auto-detected.
 
+## What's new in v0.2.0 (2026-11)
+
+Interface redesign. Every screen now shares one visual system built on Radix UI Colors: a single neutral ramp with semantic steps, three type sizes (16 / 13 / 12), 0.5 pt hairlines, and concentric 4 / 6 / 10 pt radii. Decorative cards, shadows and entrance animations were removed, and the sidebar, statistics panel, sheets, command palette, export preview and analysis dialogs were reorganised around information priority. Primer calculation is now a single action, search options moved into a popover, and the Chinese and English copy was rewritten for research users. Core parsing, rendering and CLI behaviour are unchanged.
+
 ## What's new in v0.1.0 (2026-09)
 
 Initial public release. SeqAlignMac is a native macOS application for viewing, editing, and analysing multiple sequence alignments, written in Swift, with an AppKit canvas inside a SwiftUI shell.
@@ -108,14 +112,14 @@ If you use SeqAlignMac in your research, please cite the software:
   title     = {SeqAlignMac: A native macOS application for viewing, editing, and analysing multiple sequence alignments},
   year      = {2026},
   month     = sep,
-  note      = {v0.1.0},
+  note      = {v0.2.0},
   publisher = {Zenodo},
-  doi       = {10.5281/zenodo.23053514},
-  url       = {https://doi.org/10.5281/zenodo.23053514}
+  doi       = {10.5281/zenodo.23053513},
+  url       = {https://doi.org/10.5281/zenodo.23053513}
 }
 ```
 
-To cite the software independently of its version, use the concept DOI [10.5281/zenodo.23053513](https://doi.org/10.5281/zenodo.23053513), which always resolves to the most recent release.
+The citation above uses the concept DOI [10.5281/zenodo.23053513](https://doi.org/10.5281/zenodo.23053513), which always resolves to the most recent release. Version-specific DOIs are listed on the Zenodo record.
 
 ### References
 
