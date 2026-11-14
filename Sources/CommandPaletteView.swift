@@ -81,9 +81,12 @@ struct CommandPaletteView: View {
     }
 
     var body: some View {
-        VStack(spacing: 12) {
-            HStack(spacing: 8) {
-                Image(systemName: "command")
+        VStack(spacing: 0) {
+            // 搜索行：全宽、无边框，用一条 0.5pt 细线与列表分开
+            HStack(spacing: Minimal.space2) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: Minimal.fontXS))
+                    .frame(width: 16, height: 16, alignment: .center)
                     .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
                     .accessibilityHidden(true)
                 TextField(L.s.cmdPalettePlaceholder, text: $query)
@@ -92,23 +95,26 @@ struct CommandPaletteView: View {
                     .focused($focused)
                     .onSubmit { execute(selectedIndex) }
             }
-            .padding(10)
-            .background(RoundedRectangle(cornerRadius: Minimal.radiusSM, style: .continuous)
-                .fill(Color(Minimal.card(dark: isDarkAppearance))))
-            .overlay(RoundedRectangle(cornerRadius: Minimal.radiusSM, style: .continuous)
-                .stroke(Color(Minimal.border(dark: isDarkAppearance)), lineWidth: 1))
+            .padding(.horizontal, Minimal.space3)
+            .frame(height: 44)
             .accessibilityElement(children: .contain)
             .accessibilityLabel(L.s.cmdPaletteTitle)
+
+            Rectangle()
+                .fill(Color(Minimal.border(dark: isDarkAppearance)))
+                .frame(height: Minimal.hairline)
 
             // ScrollViewReader 让选中项滚动进视口
             ScrollViewReader { proxy in
                 ScrollView {
-                    VStack(spacing: 2) {
+                    LazyVStack(spacing: 0) {
                         if filtered.isEmpty {
                             Text(L.s.cmdPaletteNoMatch)
                                 .font(.system(size: Minimal.fontSM))
                                 .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
-                                .padding(.vertical, 20)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, Minimal.space3)
+                                .padding(.vertical, Minimal.space5)
                         } else {
                             ForEach(Array(filtered.enumerated()), id: \.element.id) { index, cmd in
                                 CommandRow(cmd: CommandPaletteCommandRef(
@@ -122,24 +128,17 @@ struct CommandPaletteView: View {
                             }
                         }
                     }
-                    .padding(1)
+                    .padding(.vertical, Minimal.space1)
                 }
                 .frame(height: 260)
                 .onChange(of: selectedIndex) { _, newValue in
+                    // 键盘导航只求“看得见”，不做滚动动画：连续按方向键时动画会拖慢跟随
                     guard !filtered.isEmpty else { return }
                     let target = filtered[min(max(0, newValue), filtered.count - 1)].id
-                    // 受 shouldReduceMotion 守卫（项目统一动效约定）
-                    if Minimal.shouldReduceMotion {
-                        proxy.scrollTo(target, anchor: .center)
-                    } else {
-                        withAnimation(.easeOut(duration: 0.12)) {
-                            proxy.scrollTo(target, anchor: .center)
-                        }
-                    }
+                    proxy.scrollTo(target, anchor: .center)
                 }
             }
         }
-        .padding(Minimal.space4)
         .frame(width: 420, height: 330)
         .minimalSheetContainer()
         // 命令面板补 Esc 关闭快捷键（全工程唯一没挂的弹窗）
@@ -198,10 +197,11 @@ private struct CommandRow: View {
                         .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
                 }
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 7)
-            .background(RoundedRectangle(cornerRadius: Minimal.radiusSM, style: .continuous)
-                .fill(rowBackground))
+            .padding(.horizontal, Minimal.space3)
+            .frame(height: 30)
+            .background(RoundedRectangle(cornerRadius: Minimal.radiusXS, style: .continuous)
+                .fill(rowBackground)
+                .padding(.horizontal, Minimal.space2))
             .contentShape(Rectangle())
         }
         .buttonStyle(MinimalButtonStyle())
@@ -209,9 +209,9 @@ private struct CommandRow: View {
     }
 
     private var rowBackground: Color {
-        // 选中行用 accentSoft 背景填充（旧 primary 文字变色与 text 同色，高亮不可见）
-        if isSelected { return Color(Minimal.accentSoft(dark: isDarkAppearance)) }
-        if hovered { return Color(Minimal.card(dark: isDarkAppearance)) }
+        // 选中行 gray-5，悬停行 gray-4；只用 Radix 的“选中 / 悬停”两步
+        if isSelected { return Color(Minimal.selected(dark: isDarkAppearance)) }
+        if hovered { return Color(Minimal.hover(dark: isDarkAppearance)) }
         return Color.clear
     }
 

@@ -1,8 +1,9 @@
 //  AnalysisSheets.swift
 //  SeqAlignMac — 分析工具弹窗
 //
-//  包含：序列 Logo（信息含量）、NJ 树（Newick + 树状图）、滑动窗口一致度、
-//  GFF3 注释浏览器（跳转到比对列）。
+//  统一结构：标题（16）+ 右上工具动作 / 内容区（分割线，不套卡片）/ 底部细线 + 关闭。
+//  方法学提示只保留会影响结论解读的那几条（抽样、钳零、未校正距离、截断），
+//  操作说明交给图例与工具提示，不在每个弹窗里复述。
 
 import AppKit
 import SwiftUI
@@ -25,43 +26,60 @@ struct SequenceLogoView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text(L.s.logoTitle).font(.system(size: Minimal.fontXL, weight: .semibold))
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: Minimal.space2) {
+                SheetTitle(text: L.s.logoTitle)
                 Spacer()
-                // 截断必须可见：仅计算前若干列时若不提示，用户会以为翻页覆盖了整条序列
-                if logoOmittedColumns > 0 {
-                    Text("\(L.s.logoTruncated) \(logoOmittedColumns)")
-                        .font(.system(size: Minimal.fontXXS))
-                        .foregroundColor(.orange)
-                }
                 if totalPages > 1 {
-                    MinimalBarButton(title: "‹") { startCol = max(0, startCol - colsPerPage) }
+                    MinimalBarButton(title: "", systemImage: "chevron.left") {
+                        startCol = max(0, startCol - colsPerPage)
+                    }
                     Text("\(startCol / colsPerPage + 1) / \(totalPages)")
-                        .font(.system(size: Minimal.fontXS)).monospacedDigit()
+                        .font(.system(size: Minimal.fontXXS))
+                        .monospacedDigit()
                         .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
-                    MinimalBarButton(title: "›") {
+                    MinimalBarButton(title: "", systemImage: "chevron.right") {
                         startCol = min(max(0, logoColumns.count - colsPerPage), startCol + colsPerPage)
                     }
                 }
+            }
+            .padding(.bottom, Minimal.space3)
+
+            // 截断必须可见：否则用户会以为翻页覆盖了整条序列
+            if logoOmittedColumns > 0 {
+                HStack(spacing: Minimal.space1 + 2) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: Minimal.fontXXS))
+                        .foregroundColor(Color(Minimal.warning(dark: isDarkAppearance)))
+                    Text("\(L.s.logoTruncated) \(logoOmittedColumns)")
+                        .font(.system(size: Minimal.fontXXS))
+                        .foregroundColor(Color(Minimal.warning(dark: isDarkAppearance)))
+                    Spacer()
+                }
+                .padding(.bottom, Minimal.space2)
+            }
+
+            logoCanvas
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color(Minimal.card(dark: isDarkAppearance)))
+                .overlay(
+                    Rectangle()
+                        .stroke(Color(Minimal.border(dark: isDarkAppearance)),
+                                lineWidth: Minimal.hairline)
+                )
+
+            SheetHairline()
+                .padding(.top, Minimal.space4)
+
+            HStack {
+                Spacer()
                 MinimalSecondaryButton(title: L.s.close) { dismiss() }
                     .keyboardShortcut(.escape)
             }
-
-            Text(L.s.logoHint)
-                .font(.system(size: Minimal.fontXS))
-                .foregroundColor(Color(Minimal.textFaint(dark: isDarkAppearance)))
-
-            logoCanvas
-                .frame(maxWidth: .infinity)
-                .frame(height: 260)
-                .background(RoundedRectangle(cornerRadius: Minimal.radiusSM)
-                    .fill(Color(Minimal.card(dark: isDarkAppearance))))
-                .overlay(RoundedRectangle(cornerRadius: Minimal.radiusSM)
-                    .stroke(Color(Minimal.border(dark: isDarkAppearance)), lineWidth: 1))
+            .padding(.top, Minimal.space3)
         }
         .padding(Minimal.space5)
-        .frame(width: 720, height: 400)
+        .frame(width: 720, height: 420)
         .minimalSheetContainer()
         .onAppear { recompute() }
         .onChange(of: workspace.currentAlignment?.revision) { _, _ in recompute() }
@@ -89,29 +107,34 @@ struct SequenceLogoView: View {
     private var logoCanvas: some View {
         Canvas { context, size in
             let maxBits: Double = workspace.currentAlignment?.datatype == .nucleicAcid ? 2.0 : 4.3
-            let plotH = size.height - 26
-            let plotW = size.width - 8
+            let axisFont = Font.system(size: Minimal.fontXXS)   // 坐标轴标签 12pt，不再用 8pt
+            let leftInset: CGFloat = 40
+            let bottomInset: CGFloat = 24
+            let plotH = size.height - bottomInset
+            let plotW = size.width - leftInset - 8
             guard !logoColumns.isEmpty else { return }
             let n = min(colsPerPage, logoColumns.count - startCol)
             let colW = plotW / CGFloat(n)
 
             // 纵轴刻度（bits）
-            let axisFont = Font.system(size: 8)
             for b in stride(from: 0.0, through: maxBits, by: maxBits / 4) {
                 let y = plotH - CGFloat(b / maxBits) * plotH
                 let text = Text(String(format: "%.1f", b)).font(axisFont)
-                    .foregroundColor(Color(Minimal.textFaint(dark: isDarkAppearance)))
-                context.draw(context.resolve(text), at: CGPoint(x: 12, y: y))
+                    .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
+                let resolved = context.resolve(text)
+                let labelSize = resolved.measure(in: CGSize(width: 40, height: 20))
+                context.draw(resolved,
+                             at: CGPoint(x: leftInset - 8 - labelSize.width / 2, y: y))
                 var path = Path()
-                path.move(to: CGPoint(x: 24, y: y))
+                path.move(to: CGPoint(x: leftInset, y: y))
                 path.addLine(to: CGPoint(x: size.width - 8, y: y))
-                context.stroke(path, with: .color(Color(Minimal.border(dark: isDarkAppearance)).opacity(0.4)),
-                               lineWidth: 0.5)
+                context.stroke(path, with: .color(Color(Minimal.border(dark: isDarkAppearance))),
+                           lineWidth: Minimal.hairline)
             }
 
             for i in 0..<n {
                 let col = logoColumns[startCol + i]
-                let x = 24 + CGFloat(i) * colW
+                let x = leftInset + CGFloat(i) * colW
                 var yBase = plotH
                 for stack in col.stacks {
                     let h = CGFloat(stack.fraction * col.totalBits / maxBits) * plotH
@@ -121,21 +144,25 @@ struct SequenceLogoView: View {
                                                               dark: isDarkAppearance))
                     let rect = CGRect(x: x + 1, y: yBase - h, width: max(1, colW - 2), height: h)
                     context.fill(Path(rect), with: .color(color))
-                    // 字母
+                    // 字母：数据字形，随列宽缩放
                     let ch = String(UnicodeScalar(stack.residue))
-                    let text = Text(ch).font(.system(size: min(9, max(5, colW - 2)), design: .monospaced).weight(.bold))
+                    let text = Text(ch).font(.system(size: min(11, max(5, colW - 2)), design: .monospaced)
+                        .weight(.bold))
                         .foregroundColor(Color(Minimal.surface(dark: isDarkAppearance)))
                     context.draw(context.resolve(text), at: CGPoint(x: rect.midX, y: rect.midY))
                     yBase -= h
                 }
-                // 列号
+                // 列号：每 10 列一处，12pt
                 if (col.position + 1) % 10 == 0 {
-                    let t = Text("\(col.position + 1)").font(.system(size: 8))
-                        .foregroundColor(Color(Minimal.textFaint(dark: isDarkAppearance)))
-                    context.draw(context.resolve(t), at: CGPoint(x: x + colW / 2, y: size.height - 8))
+                    let t = Text("\(col.position + 1)").font(axisFont)
+                        .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
+                    context.draw(context.resolve(t),
+                                 at: CGPoint(x: x + colW / 2, y: size.height - bottomInset / 2))
                 }
             }
         }
+        .padding(.horizontal, Minimal.space1)
+        .padding(.vertical, Minimal.space2)
     }
 }
 
@@ -153,33 +180,37 @@ struct TreeSheetView: View {
     @State private var treeClampedBranches = 0
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text(L.s.treeTitle).font(.system(size: Minimal.fontXL, weight: .semibold))
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: Minimal.space2) {
+                SheetTitle(text: L.s.treeTitle)
                 Spacer()
                 if computing { ProgressView().controlSize(.small) }
-                MinimalSecondaryButton(title: L.s.treeCopyNewick) { copyNewick() }
-                MinimalSecondaryButton(title: L.s.close) { dismiss() }
-                    .keyboardShortcut(.escape)
+                MinimalSecondaryButton(title: L.s.treeCopyNewick, systemImage: "doc.on.doc") {
+                    copyNewick()
+                }
+                .disabled(newick.isEmpty)
             }
-            Text(L.s.treeHint)
-                .font(.system(size: Minimal.fontXS))
-                .foregroundColor(Color(Minimal.textFaint(dark: isDarkAppearance)))
+            .padding(.bottom, Minimal.space3)
 
             // 抽样、负分支钳制、未校正距离模型都必须显式出现在界面上
             if !treeSamplingNote.isEmpty {
-                Label(treeSamplingNote, systemImage: "exclamationmark.triangle.fill")
-                    .font(.system(size: Minimal.fontXS))
-                    .foregroundColor(.orange)
+                HStack(spacing: Minimal.space1 + 2) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: Minimal.fontXXS))
+                        .foregroundColor(Color(Minimal.warning(dark: isDarkAppearance)))
+                    Text(treeSamplingNote)
+                        .font(.system(size: Minimal.fontXXS))
+                        .foregroundColor(Color(Minimal.warning(dark: isDarkAppearance)))
+                    Spacer()
+                }
+                .padding(.bottom, Minimal.space2)
             }
             if treeClampedBranches > 0 {
                 Text("\(L.s.treeClampedBranches) \(treeClampedBranches)")
                     .font(.system(size: Minimal.fontXXS))
-                    .foregroundColor(Color(Minimal.textFaint(dark: isDarkAppearance)))
+                    .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
+                    .padding(.bottom, Minimal.space1)
             }
-            Text(L.s.treeModelUncorrected)
-                .font(.system(size: Minimal.fontXXS))
-                .foregroundColor(Color(Minimal.textFaint(dark: isDarkAppearance)))
 
             ScrollView([.horizontal, .vertical]) {
                 Text(newick.isEmpty ? L.s.statsComputing : newick)
@@ -190,13 +221,30 @@ struct TreeSheetView: View {
                     .padding(Minimal.space3)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(RoundedRectangle(cornerRadius: Minimal.radiusSM)
-                .fill(Color(Minimal.card(dark: isDarkAppearance))))
-            .overlay(RoundedRectangle(cornerRadius: Minimal.radiusSM)
-                .stroke(Color(Minimal.border(dark: isDarkAppearance)), lineWidth: 1))
+            .background(Color(Minimal.card(dark: isDarkAppearance)))
+            .overlay(
+                Rectangle()
+                    .stroke(Color(Minimal.border(dark: isDarkAppearance)),
+                            lineWidth: Minimal.hairline)
+            )
+
+            Text(L.s.treeHint)
+                .font(.system(size: Minimal.fontXXS))
+                .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
+                .padding(.top, Minimal.space2)
+
+            SheetHairline()
+                .padding(.top, Minimal.space3)
+
+            HStack {
+                Spacer()
+                MinimalSecondaryButton(title: L.s.close) { dismiss() }
+                    .keyboardShortcut(.escape)
+            }
+            .padding(.top, Minimal.space3)
         }
         .padding(Minimal.space5)
-        .frame(width: 640, height: 380)
+        .frame(width: 640, height: 420)
         .minimalSheetContainer()
         .onAppear { recompute() }
         .onChange(of: workspace.currentAlignment?.revision) { _, _ in recompute() }
@@ -254,37 +302,51 @@ struct WindowChartSheetView: View {
     @State private var identitiesCache: (align: Alignment, revision: UInt64, identities: [Double])?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text(L.s.windowTitle).font(.system(size: Minimal.fontXL, weight: .semibold))
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: Minimal.space2) {
+                SheetTitle(text: L.s.windowTitle)
                 Spacer()
                 if computing { ProgressView().controlSize(.small) }
-                MinimalSecondaryButton(title: L.s.close) { dismiss() }
-                    .keyboardShortcut(.escape)
             }
+            .padding(.bottom, Minimal.space3)
 
-            HStack(spacing: 8) {
-                Text("\(L.s.windowSize): \(Int(windowSize))")
-                    .font(.system(size: Minimal.fontSM))
+            HStack(spacing: Minimal.space2) {
+                Text(L.s.windowSize)
+                    .font(.system(size: Minimal.fontXXS))
                     .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
-                    .frame(width: 120, alignment: .leading)
+                Text("\(Int(windowSize))")
+                    .font(.system(size: Minimal.fontXXS, design: .monospaced))
+                    .fontWeight(.medium)
+                    .foregroundColor(Color(Minimal.text(dark: isDarkAppearance)))
+                    .frame(width: 32, alignment: .trailing)
                 Slider(value: $windowSize, in: 5...500, step: 5) { EmptyView() }
-                    .frame(width: 280)
                     .tint(Color(Minimal.primary(dark: isDarkAppearance)))
                     .accessibilityLabel(L.s.windowSize)
                     .onChange(of: windowSize) { _, _ in recompute() }
             }
+            .padding(.bottom, Minimal.space3)
 
             chart
-                .frame(maxWidth: .infinity)
-                .frame(height: 260)
-                .background(RoundedRectangle(cornerRadius: Minimal.radiusSM)
-                    .fill(Color(Minimal.card(dark: isDarkAppearance))))
-                .overlay(RoundedRectangle(cornerRadius: Minimal.radiusSM)
-                    .stroke(Color(Minimal.border(dark: isDarkAppearance)), lineWidth: 1))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color(Minimal.card(dark: isDarkAppearance)))
+                .overlay(
+                    Rectangle()
+                        .stroke(Color(Minimal.border(dark: isDarkAppearance)),
+                                lineWidth: Minimal.hairline)
+                )
+
+            SheetHairline()
+                .padding(.top, Minimal.space4)
+
+            HStack {
+                Spacer()
+                MinimalSecondaryButton(title: L.s.close) { dismiss() }
+                    .keyboardShortcut(.escape)
+            }
+            .padding(.top, Minimal.space3)
         }
         .padding(Minimal.space5)
-        .frame(width: 640, height: 380)
+        .frame(width: 640, height: 420)
         .minimalSheetContainer()
         .onAppear { recompute() }
     }
@@ -326,7 +388,8 @@ struct WindowChartSheetView: View {
     private var chart: some View {
         Canvas { context, size in
             guard points.count >= 2 else { return }
-            let plot = CGRect(x: 30, y: 8, width: size.width - 40, height: size.height - 30)
+            let axisFont = Font.system(size: Minimal.fontXXS)
+            let plot = CGRect(x: 40, y: 10, width: size.width - 52, height: size.height - 34)
 
             // 网格与纵轴
             for frac in stride(from: 0.0, through: 1.0, by: 0.25) {
@@ -334,11 +397,14 @@ struct WindowChartSheetView: View {
                 var path = Path()
                 path.move(to: CGPoint(x: plot.minX, y: y))
                 path.addLine(to: CGPoint(x: plot.maxX, y: y))
-                context.stroke(path, with: .color(Color(Minimal.border(dark: isDarkAppearance)).opacity(0.4)),
-                               lineWidth: 0.5)
-                let label = Text("\(Int(frac * 100))%").font(.system(size: 8))
-                    .foregroundColor(Color(Minimal.textFaint(dark: isDarkAppearance)))
-                context.draw(context.resolve(label), at: CGPoint(x: 14, y: y))
+                context.stroke(path, with: .color(Color(Minimal.border(dark: isDarkAppearance))),
+                           lineWidth: Minimal.hairline)
+                let label = Text("\(Int(frac * 100))%").font(axisFont)
+                    .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
+                let resolved = context.resolve(label)
+                let labelSize = resolved.measure(in: CGSize(width: 40, height: 20))
+                context.draw(resolved,
+                             at: CGPoint(x: plot.minX - 8 - labelSize.width / 2, y: y))
             }
 
             let x0 = Double(points[0].center), x1 = Double(points[points.count - 1].center)
@@ -350,17 +416,22 @@ struct WindowChartSheetView: View {
                 if i == 0 { line.move(to: CGPoint(x: x, y: y)) }
                 else { line.addLine(to: CGPoint(x: x, y: y)) }
             }
-            context.stroke(line, with: .color(Color(Minimal.primary(dark: isDarkAppearance))), lineWidth: 1.5)
+            context.stroke(line, with: .color(Color(Minimal.primary(dark: isDarkAppearance))),
+                           lineWidth: Minimal.hairline)
 
             // 横轴端点标注
             // 横轴两端一律用真实中心列：数据点归一化在 points[0].center…points[last].center
             // 上，窗口 50 时左端真实对应第 25 列；若左端写死 "1"，同一根轴左端会
             // 标错 window/2 列、右端标真值，读图者定位高分歧区段会整体左偏。
-            let l0 = Text("\(Int(x0 + 1))").font(.system(size: 8)).foregroundColor(Color(Minimal.textFaint(dark: isDarkAppearance)))
-            context.draw(context.resolve(l0), at: CGPoint(x: plot.minX, y: size.height - 8))
-            let l1 = Text("\(Int(x1))").font(.system(size: 8)).foregroundColor(Color(Minimal.textFaint(dark: isDarkAppearance)))
-            context.draw(context.resolve(l1), at: CGPoint(x: plot.maxX, y: size.height - 8))
+            let l0 = Text("\(Int(x0 + 1))").font(axisFont)
+                .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
+            context.draw(context.resolve(l0), at: CGPoint(x: plot.minX, y: size.height - 10))
+            let l1 = Text("\(Int(x1))").font(axisFont)
+                .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
+            context.draw(context.resolve(l1), at: CGPoint(x: plot.maxX, y: size.height - 10))
         }
+        .padding(.horizontal, Minimal.space1)
+        .padding(.vertical, Minimal.space2)
     }
 }
 
@@ -372,15 +443,21 @@ struct AnnotationSheetView: View {
     @State private var features: [GffFeature] = []
     @State private var fileName = ""
 
+    private let seqWidth: CGFloat = 160
+    private let typeWidth: CGFloat = 104
+    private let rangeWidth: CGFloat = 128
+    private let jumpWidth: CGFloat = 56
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text(L.s.annotTitle).font(.system(size: Minimal.fontXL, weight: .semibold))
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: Minimal.space2) {
+                SheetTitle(text: L.s.annotTitle)
                 Spacer()
-                MinimalSecondaryButton(title: L.s.annotLoad) { loadGff() }
-                MinimalSecondaryButton(title: L.s.close) { dismiss() }
-                    .keyboardShortcut(.escape)
+                MinimalSecondaryButton(title: L.s.annotLoad, systemImage: "square.and.arrow.down") {
+                    loadGff()
+                }
             }
+            .padding(.bottom, Minimal.space3)
 
             if features.isEmpty {
                 Text(L.s.annotNone)
@@ -389,60 +466,78 @@ struct AnnotationSheetView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 VStack(spacing: 0) {
-                    HStack {
-                        headerCell(L.s.annotSeq, width: 150)
-                        headerCell(L.s.annotType, width: 90)
-                        headerCell(L.s.annotRange, width: 130)
+                    HStack(spacing: 0) {
+                        headerCell(L.s.annotSeq, width: seqWidth)
+                        headerCell(L.s.annotType, width: typeWidth)
+                        headerCell(L.s.annotRange, width: rangeWidth)
                         headerCell(L.s.annotName)
-                        Spacer().frame(width: 60)
+                        Spacer().frame(width: jumpWidth)
                     }
-                    Divider()
-                    List {
-                        ForEach(Array(features.enumerated()), id: \.offset) { i, f in
-                            HStack(spacing: 0) {
-                                cell(f.seqid, width: 150)
-                                cell(f.type, width: 90)
-                                cell("\(f.start)–\(f.end)", width: 130)
-                                cell(f.name)
-                                Spacer().frame(width: Minimal.space1)
-                                MinimalBarButton(title: L.s.annotJump) { jump(to: f) }
+                    .frame(height: 30)
+
+                    SheetHairline()
+
+                    ScrollView {
+                        LazyVStack(spacing: 0) {
+                            ForEach(Array(features.enumerated()), id: \.offset) { _, f in
+                                HStack(spacing: 0) {
+                                    cell(f.seqid, width: seqWidth)
+                                    cell(f.type, width: typeWidth)
+                                    cell("\(f.start)–\(f.end)", width: rangeWidth)
+                                    cell(f.name)
+                                    Spacer().frame(width: Minimal.space1)
+                                    MinimalBarButton(title: L.s.annotJump) { jump(to: f) }
+                                        .frame(width: jumpWidth - Minimal.space1, alignment: .trailing)
+                                }
+                                .frame(height: 32)
+                                Rectangle()
+                                    .fill(Color(Minimal.border(dark: isDarkAppearance)))
+                                    .frame(height: Minimal.hairline)
                             }
-                            .listRowInsets(EdgeInsets())
-                            .padding(.vertical, 2)
                         }
                     }
-                    .listStyle(.plain)
-                    .scrollContentBackground(.hidden)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(RoundedRectangle(cornerRadius: Minimal.radiusSM)
-                    .fill(Color(Minimal.card(dark: isDarkAppearance))))
-                .overlay(RoundedRectangle(cornerRadius: Minimal.radiusSM)
-                    .stroke(Color(Minimal.border(dark: isDarkAppearance)), lineWidth: 1))
-                .clipShape(RoundedRectangle(cornerRadius: Minimal.radiusSM))
-
-                if !fileName.isEmpty {
-                    Text("\(fileName) · \(features.count)")
-                        .font(.system(size: Minimal.fontXXS))
-                        .foregroundColor(Color(Minimal.textFaint(dark: isDarkAppearance)))
-                }
+                .background(Color(Minimal.card(dark: isDarkAppearance)))
+                .overlay(
+                    Rectangle()
+                        .stroke(Color(Minimal.border(dark: isDarkAppearance)),
+                                lineWidth: Minimal.hairline)
+                )
             }
+
+            SheetHairline()
+                .padding(.top, Minimal.space3)
+
+            HStack(alignment: .firstTextBaseline) {
+                if !fileName.isEmpty {
+                    Text("\(fileName) (\(features.count))")
+                        .font(.system(size: Minimal.fontXXS, design: .monospaced))
+                        .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+                Spacer()
+                MinimalSecondaryButton(title: L.s.close) { dismiss() }
+                    .keyboardShortcut(.escape)
+            }
+            .padding(.top, Minimal.space3)
         }
         .padding(Minimal.space5)
-        .frame(width: 720, height: 440)
+        .frame(width: 720, height: 460)
         .minimalSheetContainer()
     }
 
     private func headerCell(_ t: String, width: CGFloat? = nil) -> some View {
         Text(t)
-            .font(.system(size: Minimal.fontXS, weight: .semibold))
+            .font(.system(size: Minimal.fontXXS, weight: .semibold))
             .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
             .frame(width: width, alignment: .leading)
     }
 
     private func cell(_ t: String, width: CGFloat? = nil) -> some View {
         Text(t)
-            .font(.system(size: Minimal.fontXS))
+            .font(.system(size: Minimal.fontXXS))
             .lineLimit(1)
             .truncationMode(.tail)
             .foregroundColor(Color(Minimal.text(dark: isDarkAppearance)))
@@ -497,8 +592,8 @@ struct AnnotationSheetView: View {
             if parsed.isEmpty {
                 workspace.showToast(L.s.annotLoadEmpty)
             } else {
-                    // 成功载入的提示带条数与文件名（避免与导出语义混淆）
-                    workspace.showToast("\(L.s.annotLoaded) \(parsed.count) \(url.lastPathComponent)")
+                // 成功载入的提示带条数与文件名（避免与导出语义混淆）
+                workspace.showToast("\(L.s.annotLoaded) \(parsed.count) \(url.lastPathComponent)")
             }
         }
     }

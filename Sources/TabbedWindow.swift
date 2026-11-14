@@ -255,13 +255,9 @@ struct FloatingTabBar: View {
                 // + 新建标签按钮：热区为整个按钮面（32×28）
                 Button(action: { tabState.addTab() }) {
                     Image(systemName: "plus")
-                        .font(.system(size: Minimal.fontSM, weight: .medium))
+                        .font(.system(size: Minimal.fontXS, weight: .medium))
                         .frame(width: 32, height: 28)
                         .contentShape(Rectangle())
-                        .background(
-                            RoundedRectangle(cornerRadius: Minimal.radiusSM, style: .continuous)
-                                .fill(Color.clear)
-                        )
                 }
                 .buttonStyle(.plain)
                 .help(L.s.tooltipNewTab)
@@ -289,17 +285,28 @@ struct FloatingTabItem: View {
     private var title: String {
         _ = workspaceTick
         let name = tab.workspace.currentFileName
-        let base = name.isEmpty ? L.s.unnamed : name
-        // 脏标签前加「•」标记，让用户区分哪个标签有未保存修改
-        return tab.workspace.isDirty ? "• \(base)" : base
+        return name.isEmpty ? L.s.unnamed : name
+    }
+    private var isDirty: Bool {
+        _ = workspaceTick
+        return tab.workspace.isDirty
     }
     private var dark: Bool { isDarkAppearance }
 
     var body: some View {
-        HStack(spacing: Minimal.space2 - Minimal.space1) {
+        HStack(spacing: Minimal.space1 + 2) {
+            // 脏标记画成 4pt 圆点而不是拼进标题字符串：字距不受字符影响，
+            // 标题左缘在任何状态下都稳定
+            if isDirty {
+                Circle()
+                    .fill(Color(Minimal.textMuted(dark: dark)))
+                    .frame(width: 4, height: 4)
+                    .accessibilityHidden(true)
+            }
+
             // 文本标签居左
             Text(title)
-                .font(.system(size: Minimal.fontSM, weight: isActive ? .medium : .regular))
+                .font(.system(size: Minimal.fontXS, weight: isActive ? .medium : .regular))
                 .lineLimit(1)
                 .truncationMode(.middle)
                 .foregroundColor(Color(isActive
@@ -309,15 +316,15 @@ struct FloatingTabItem: View {
             Spacer(minLength: 0)
 
             // 关闭叉号固定在标签右端（激活或悬停时显示）
-                if isActive || hovered {
+            if isActive || hovered {
                 Button(action: { tabState.closeTab(tab.id) }) {
                     Image(systemName: "xmark")
-                        .font(.system(size: Minimal.fontXXS - 1, weight: .bold))
-                        .frame(width: 22, height: 22)
+                        .font(.system(size: 9, weight: .bold))
+                        .frame(width: 18, height: 18)
                         .contentShape(Rectangle())
                         .background(
                             RoundedRectangle(cornerRadius: Minimal.radiusXS, style: .continuous)
-                                .fill(hovered ? Color(Minimal.border(dark: dark)) : Color.clear)
+                                .fill(hovered ? Color(Minimal.hover(dark: dark)) : Color.clear)
                         )
                         .foregroundColor(Color(Minimal.textMuted(dark: dark)))
                 }
@@ -333,14 +340,14 @@ struct FloatingTabItem: View {
             RoundedRectangle(cornerRadius: Minimal.radiusSM, style: .continuous)
                 .fill(isActive
                     ? Color(Minimal.surface(dark: dark))
-                    : (hovered ? Color(Minimal.card(dark: dark)) : Color.clear))
+                    : (hovered ? Color(Minimal.hover(dark: dark)) : Color.clear))
         )
         .overlay(
             RoundedRectangle(cornerRadius: Minimal.radiusSM, style: .continuous)
                 .stroke(isActive
                     ? Color(Minimal.border(dark: dark))
                     : Color.clear,   // hover 仅填充，无边框
-                    lineWidth: 1)
+                    lineWidth: Minimal.hairline)
         )
         .contentShape(Rectangle())
         .onHover { hovering in

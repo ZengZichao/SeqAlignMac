@@ -73,7 +73,7 @@ struct ContentView: View {
                          minWidth: 150, maxWidth: 320)
             Rectangle()
                 .fill(Color(Minimal.border(dark: isDarkAppearance)))
-                .frame(width: 1)
+                .frame(width: Minimal.hairline)
 
             // 中栏：搜索栏 + 画布 + 状态栏
             centerContent

@@ -1,7 +1,9 @@
 //  TranslationOptionsView.swift
-//  SeqAlignMac — 翻译选项弹窗（从 ToolSheetViews.swift 拆分）
+//  SeqAlignMac — 翻译选项弹窗
 //
-//  选择遗传密码表、阅读框、显示模式等，将核苷酸序列翻译为氨基酸序列。
+//  四个选项都有实际后果（读框、显示方式、命名、是否保留原比对），因此按
+//  「一次决定一组」的纵向表单排列：标签列定宽、控件左缘对齐、组间留白由
+//  统一的 4pt 栅格决定。选项本身不附解释文本——名称已说明结果。
 
 import AppKit
 import SwiftUI
@@ -33,20 +35,19 @@ struct TranslationOptionsView: View {
                 parts.append(L.s.translationNeedsNucleotide)
             }
         }
-        return parts.joined(separator: " · ")
+        let separator = LanguageManager.shared.language == .zh ? "、" : ", "
+        return parts.joined(separator: separator)
     }
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text(L.s.translateTitle).font(.system(size: Minimal.fontXL, weight: .semibold))
+    private let labelWidth: CGFloat = 76
 
-            VStack(alignment: .leading, spacing: 14) {
-                // 标签列固定宽度，控件列统一左对齐
-                HStack(alignment: .center, spacing: 12) {
-                    Text(L.s.translateCodeTable)
-                        .font(.system(size: Minimal.fontSM))
-                        .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
-                        .frame(width: 92, alignment: .leading)
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            SheetTitle(text: L.s.translateTitle)
+                .padding(.bottom, Minimal.space4)
+
+            VStack(alignment: .leading, spacing: Minimal.space3) {
+                settingRow(L.s.translateCodeTable) {
                     Picker("", selection: $selectedTable) {
                         Text("Standard (1)").tag(GeneticCodeTable.standard)
                         Text("Vertebrate Mito (2)").tag(GeneticCodeTable.vertebrateMito)
@@ -67,15 +68,12 @@ struct TranslationOptionsView: View {
                         Text("Peritrich Nuclear (30)").tag(GeneticCodeTable.peritrichNuclear)
                     }
                     .pickerStyle(.menu)
-                    .frame(width: 260, alignment: .leading)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .labelsHidden()
+                    .frame(width: 280, alignment: .leading)
+                    .accessibilityLabel(L.s.translateCodeTable)
                 }
 
-                HStack(alignment: .center, spacing: 12) {
-                    Text(L.s.translateFrame)
-                        .font(.system(size: Minimal.fontSM))
-                        .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
-                        .frame(width: 92, alignment: .leading)
+                settingRow(L.s.translateFrame) {
                     Picker("", selection: $selectedFrame) {
                         Text("-3").tag(-3)
                         Text("-2").tag(-2)
@@ -85,15 +83,12 @@ struct TranslationOptionsView: View {
                         Text("+3").tag(2)
                     }
                     .pickerStyle(.segmented)
-                    .frame(width: 260)
-                    .tint(Color(Minimal.primary(dark: isDarkAppearance)))
+                    .labelsHidden()
+                    .frame(width: 280)
+                    .accessibilityLabel(L.s.translateFrame)
                 }
 
-                HStack(alignment: .center, spacing: 12) {
-                    Text(L.s.translateMode)
-                        .font(.system(size: Minimal.fontSM))
-                        .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
-                        .frame(width: 92, alignment: .leading)
+                settingRow(L.s.translateMode) {
                     Picker("", selection: $selectedMode) {
                         Text(L.s.translateModeCodon).tag(TranslationDisplayMode.codonOnly)
                         Text(L.s.translateModeAA).tag(TranslationDisplayMode.aminoAcidOnly)
@@ -101,38 +96,37 @@ struct TranslationOptionsView: View {
                         Text(L.s.translateModeIgnoreGaps).tag(TranslationDisplayMode.ignoreGaps)
                     }
                     .pickerStyle(.segmented)
-                    .frame(width: 350)
-                    .tint(Color(Minimal.primary(dark: isDarkAppearance)))
+                    .labelsHidden()
+                    .frame(width: 340)
+                    .accessibilityLabel(L.s.translateMode)
                 }
 
-                HStack(alignment: .center, spacing: 12) {
-                    Text(L.s.translateNameOption)
-                        .font(.system(size: Minimal.fontSM))
-                        .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
-                        .frame(width: 92, alignment: .leading)
+                settingRow(L.s.translateNameOption) {
                     Picker("", selection: $nameAddSuffix) {
                         Text(L.s.translateKeepOriginal).tag(false)
                         Text(L.s.translateAddSuffix).tag(true)
                     }
                     .pickerStyle(.segmented)
-                    .frame(width: 260)
-                    .tint(Color(Minimal.primary(dark: isDarkAppearance)))
+                    .labelsHidden()
+                    .frame(width: 280)
+                    .accessibilityLabel(L.s.translateNameOption)
                 }
 
-                // 选项开关归入同一卡片，纵向排列对齐
-                VStack(alignment: .leading, spacing: 10) {
-                    Toggle(L.s.translateNewWindow, isOn: $openInNewWindow)
+                SheetHairline()
+                    .padding(.vertical, Minimal.space1)
+
+                Toggle(isOn: $openInNewWindow) {
+                    Text(L.s.translateNewWindow)
                         .font(.system(size: Minimal.fontSM))
                 }
-                .padding(Minimal.space3)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(RoundedRectangle(cornerRadius: Minimal.radiusSM, style: .continuous)
-                    .fill(Color(Minimal.card(dark: isDarkAppearance))))
-                .overlay(RoundedRectangle(cornerRadius: Minimal.radiusSM, style: .continuous)
-                    .stroke(Color(Minimal.border(dark: isDarkAppearance)), lineWidth: 1))
+                .toggleStyle(.checkbox)
             }
 
-            HStack {
+            Spacer(minLength: Minimal.space4)
+
+            SheetHairline()
+
+            HStack(spacing: Minimal.space2) {
                 Spacer()
                 MinimalSecondaryButton(title: L.s.cancel) { isPresented = false }
                 MinimalPrimaryButton(title: L.s.translateBtn) {
@@ -191,9 +185,23 @@ struct TranslationOptionsView: View {
                 }
                 .keyboardShortcut(.return)
             }
+            .padding(.top, Minimal.space3)
         }
         .padding(Minimal.space5)
         .frame(width: 560, height: 400)
         .minimalSheetContainer()
+    }
+
+    private func settingRow<Content: View>(_ label: String, @ViewBuilder _ control: () -> Content) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: Minimal.space2) {
+            Text(label)
+                .font(.system(size: Minimal.fontXXS))
+                .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
+                .lineLimit(1)
+                .frame(width: labelWidth, alignment: .leading)
+            control()
+            Spacer(minLength: 0)
+        }
+        .frame(minHeight: 28)
     }
 }

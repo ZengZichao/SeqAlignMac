@@ -1,10 +1,8 @@
 //  SettingsView.swift
-//  SeqAlignMac — 设置弹窗（从 ToolSheetViews.swift 拆分）
+//  SeqAlignMac — 偏好设置
 //
-//  外观模式、配色方案、字号、共识显示、ClustalX 阈值等全局设置。
-//  共识模式改 .menu。
-//  固定 480×480 改为 minHeight + ScrollView（英文长 Toggle 标题折行后底部被裁剪）；
-//      标签列宽度与选择器宽度消费 Minimal 令牌。
+//  只放全局、低频、需要一次决定的事项：外观、画布默认、分析口径。
+//  与某次操作绑定的参数（比对器超时）属于对应操作面板，不在这里出现。
 
 import AppKit
 import SwiftUI
@@ -32,155 +30,187 @@ struct SettingsView: View {
     @ObservedObject private var appearanceStore = AppearanceStore.shared
     @State private var clustalXThreshold: Double = ColorComputer.clustalXThreshold
     @State private var consensusMode: Int = UserDefaults.standard.integer(forKey: "SeqAlignMac.consensusMode")
-    @State private var alignerTimeout: Int = UserDefaults.standard.integer(forKey: "SeqAlignMac.externalAlignerTimeout") == 0
-        ? 300 : UserDefaults.standard.integer(forKey: "SeqAlignMac.externalAlignerTimeout")
 
-    /// 标签列宽 / 选择器宽度统一走令牌
+    /// 标签列宽 / 选择器宽度统一走令牌；两列同宽才能让控件左缘落在同一条竖线上
     private let labelWidth: CGFloat = 92
+    private let controlWidth: CGFloat = 200
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text(L.s.settingsTitle).font(.system(size: Minimal.fontXL, weight: .semibold))
+        VStack(alignment: .leading, spacing: 0) {
+            SheetTitle(text: L.s.settingsTitle)
+                .padding(.bottom, Minimal.space4)
 
-            // 内容可滚动，高度改 minHeight（长文案不再被裁剪）
             ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    HStack(alignment: .center, spacing: 12) {
-                        settingLabel(L.s.settingsAppearance)
-                        Picker("", selection: Binding(
-                            get: { appearanceStore.mode },
-                            set: { appearanceStore.apply($0) }
-                        )) {
-                            Text(L.s.settingsLight).tag(AppearanceMode.light)
-                            Text(L.s.settingsDark).tag(AppearanceMode.dark)
-                            Text(L.s.settingsSystem).tag(AppearanceMode.system)
+                VStack(alignment: .leading, spacing: 0) {
+                    // 外观
+                    SheetSectionTitle(text: L.s.settingsAppearance)
+                        .padding(.bottom, Minimal.space2)
+
+                    rows {
+                        settingRow(L.s.settingsAppearance) {
+                            Picker("", selection: Binding(
+                                get: { appearanceStore.mode },
+                                set: { appearanceStore.apply($0) }
+                            )) {
+                                Text(L.s.settingsLight).tag(AppearanceMode.light)
+                                Text(L.s.settingsDark).tag(AppearanceMode.dark)
+                                Text(L.s.settingsSystem).tag(AppearanceMode.system)
+                            }
+                            .pickerStyle(.segmented)
+                            .labelsHidden()
+                            .frame(width: controlWidth)
+                            .accessibilityLabel(L.s.settingsAppearance)
                         }
-                        .pickerStyle(.segmented)
-                        .frame(width: Minimal.schemePickerW)
-                        .tint(Color(Minimal.primary(dark: isDarkAppearance)))
-                        .accessibilityLabel(L.s.settingsAppearance)
+
+                        settingRow(L.s.settingsColorScheme) {
+                            // 下拉菜单而非分段：七个选项在分段控件里会被截断
+                            Picker("", selection: $workspace.currentScheme) {
+                                Text(L.s.schemeMinimal).tag(ColorScheme.minimal)
+                                Text(L.s.schemeClustalX).tag(ColorScheme.clustalX)
+                                Text(L.s.schemeZappo).tag(ColorScheme.zappo)
+                                Text(L.s.schemeSeaView).tag(ColorScheme.seaView)
+                                Text(L.s.schemeDefault).tag(ColorScheme.defaultNucleotide)
+                                Text(L.s.schemeTransitionTransversion).tag(ColorScheme.transitionTransversion)
+                                Text(L.s.schemeOkabeIto).tag(ColorScheme.okabeIto)
+                            }
+                            .pickerStyle(.menu)
+                            .labelsHidden()
+                            .frame(width: controlWidth, alignment: .leading)
+                            .accessibilityLabel(L.s.settingsColorScheme)
+                        }
+
+                        settingRow(L.s.settingsFontSize) {
+                            Stepper(value: $workspace.fontSize, in: 8...28) {
+                                Text("\(Int(workspace.fontSize)) pt")
+                                    .monospacedDigit()
+                                    .font(.system(size: Minimal.fontSM, design: .monospaced))
+                                    .frame(width: 40, alignment: .leading)
+                            }
+                            .accessibilityLabel(L.s.settingsFontSize)
+                        }
                     }
 
-                    HStack(alignment: .center, spacing: 12) {
-                        settingLabel(L.s.settingsColorScheme)
-                        // 下拉菜单替代 6 段 segmented：段宽不足会遮挡「默认」等选项文字
-                        Picker("", selection: $workspace.currentScheme) {
-                            Text(L.s.schemeMinimal).tag(ColorScheme.minimal)
-                            Text(L.s.schemeClustalX).tag(ColorScheme.clustalX)
-                            Text(L.s.schemeZappo).tag(ColorScheme.zappo)
-                            Text(L.s.schemeSeaView).tag(ColorScheme.seaView)
-                            Text(L.s.schemeDefault).tag(ColorScheme.defaultNucleotide)
-                            Text(L.s.schemeTransitionTransversion).tag(ColorScheme.transitionTransversion)
-                            Text(L.s.schemeOkabeIto).tag(ColorScheme.okabeIto)
-                        }
-                        .pickerStyle(.menu)
-                        .frame(width: Minimal.schemePickerW, alignment: .leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityLabel(L.s.settingsColorScheme)
-                    }
+                    SheetHairline()
+                        .padding(.vertical, Minimal.space4)
 
-                    HStack(alignment: .center, spacing: 12) {
-                        settingLabel(L.s.settingsFontSize)
-                        Stepper(value: $workspace.fontSize, in: 8...28) {
-                            // 步进器补单位
-                            Text("\(Int(workspace.fontSize)) pt")
-                                .monospacedDigit()
+                    // 画布
+                    SheetSectionTitle(text: L.s.menuView)
+                        .padding(.bottom, Minimal.space1)
+
+                    VStack(alignment: .leading, spacing: Minimal.space1) {
+                        Toggle(isOn: $workspace.showConsensus) {
+                            Text(L.s.settingsShowConsensus)
                                 .font(.system(size: Minimal.fontSM))
-                                .frame(width: 44, alignment: .leading)
                         }
-                        .accessibilityLabel(L.s.settingsFontSize)
-                    }
+                        .toggleStyle(.checkbox)
 
-                    VStack(alignment: .leading, spacing: 4) {
-                        // Toggle 走主题字号
-                        Toggle(L.s.settingsShowConsensus, isOn: $workspace.showConsensus)
-                            .font(.system(size: Minimal.fontSM))
-                        Toggle(L.s.settingsHighContrast, isOn: $workspace.highContrast)
-                            .font(.system(size: Minimal.fontSM))
-                        Toggle(L.s.settingsFocusDim, isOn: $workspace.focusDimMode)
-                            .font(.system(size: Minimal.fontSM))
-                    }
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Text(L.s.clustalXThreshold)
+                        Toggle(isOn: $workspace.highContrast) {
+                            Text(L.s.settingsHighContrast)
                                 .font(.system(size: Minimal.fontSM))
-                            Spacer()
-                            Text("\(Int(clustalXThreshold * 100))%")
-                                .font(.system(size: Minimal.fontSM, design: .monospaced))
-                                .monospacedDigit()
-                                .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
                         }
-                        Slider(value: $clustalXThreshold, in: 0.1...0.9, step: 0.05) {
-                            EmptyView()
-                        } onEditingChanged: { editing in
-                            if !editing {
-                                ColorComputer.clustalXThreshold = clustalXThreshold
+                        .toggleStyle(.checkbox)
+
+                        Toggle(isOn: $workspace.focusDimMode) {
+                            Text(L.s.settingsFocusDim)
+                                .font(.system(size: Minimal.fontSM))
+                        }
+                        .toggleStyle(.checkbox)
+                    }
+                    .frame(minHeight: 26 * 3, alignment: .leading)
+
+                    SheetHairline()
+                        .padding(.vertical, Minimal.space4)
+
+                    // 分析口径
+                    SheetSectionTitle(text: L.s.sidebarGroupAnalysis)
+                        .padding(.bottom, Minimal.space2)
+
+                    rows {
+                        settingRow(L.s.consensusMode) {
+                            Picker("", selection: $consensusMode) {
+                                Text(L.s.consensusMajority).tag(0)
+                                Text(L.s.consensusIUPAC).tag(1)
+                                Text(L.s.consensusStrict).tag(2)
+                            }
+                            .pickerStyle(.menu)
+                            .labelsHidden()
+                            .frame(width: controlWidth, alignment: .leading)
+                            .accessibilityLabel(L.s.consensusMode)
+                            .onChange(of: consensusMode) { _, newVal in
+                                UserDefaults.standard.set(newVal, forKey: "SeqAlignMac.consensusMode")
                                 workspace.objectWillChange.send()
                             }
                         }
-                        .tint(Color(Minimal.primary(dark: isDarkAppearance)))
-                        // 无障碍标签
-                        .accessibilityLabel(L.s.clustalXThreshold)
-                        .accessibilityValue("\(Int(clustalXThreshold * 100))%")
-                        Text(L.s.clustalXThresholdHint)
-                            .font(.system(size: Minimal.fontXXS))
-                            .foregroundColor(Color(Minimal.textFaint(dark: isDarkAppearance)))
-                    }
 
-                    HStack(alignment: .center, spacing: 12) {
-                        settingLabel(L.s.consensusMode)
-                        // 与配色方案一致改 .menu（"IUPAC Degenerate" 在 segmented 中被截断）
-                        Picker("", selection: $consensusMode) {
-                            Text(L.s.consensusMajority).tag(0)
-                            Text(L.s.consensusIUPAC).tag(1)
-                            Text(L.s.consensusStrict).tag(2)
-                        }
-                        .pickerStyle(.menu)
-                        .frame(width: Minimal.schemePickerW, alignment: .leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityLabel(L.s.consensusMode)
-                        .onChange(of: consensusMode) { _, newVal in
-                            UserDefaults.standard.set(newVal, forKey: "SeqAlignMac.consensusMode")
-                            workspace.objectWillChange.send()
-                        }
-                    }
+                        // 阈值只对 ClustalX 方案生效：不相关时不该出现，避免用户为无效选项做判断
+                        if workspace.currentScheme == .clustalX {
+                            VStack(alignment: .leading, spacing: Minimal.space1) {
+                                HStack(spacing: Minimal.space2) {
+                                    Text(L.s.clustalXThreshold)
+                                        .font(.system(size: Minimal.fontXXS))
+                                        .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
+                                    Spacer()
+                                    Text("\(Int(clustalXThreshold * 100))%")
+                                        .font(.system(size: Minimal.fontXXS, design: .monospaced))
+                                        .fontWeight(.medium)
+                                        .foregroundColor(Color(Minimal.text(dark: isDarkAppearance)))
+                                }
+                                Slider(value: $clustalXThreshold, in: 0.1...0.9, step: 0.05) {
+                                    EmptyView()
+                                } onEditingChanged: { editing in
+                                    if !editing {
+                                        ColorComputer.clustalXThreshold = clustalXThreshold
+                                        workspace.objectWillChange.send()
+                                    }
+                                }
+                                .tint(Color(Minimal.primary(dark: isDarkAppearance)))
+                                .accessibilityLabel(L.s.clustalXThreshold)
+                                .accessibilityValue("\(Int(clustalXThreshold * 100))%")
 
-                    // 外部比对器超时可配置
-                    HStack(alignment: .center, spacing: 12) {
-                        settingLabel(L.s.settingsAlignerTimeout)
-                        Stepper(value: $alignerTimeout, in: 30...3600, step: 30) {
-                            Text("\(alignerTimeout) s")
-                                .font(.system(size: Minimal.fontSM))
-                                .foregroundColor(Color(Minimal.text(dark: isDarkAppearance)))
-                                .frame(width: 72, alignment: .leading)
-                        }
-                        .accessibilityLabel(L.s.settingsAlignerTimeout)
-                        .onChange(of: alignerTimeout) { _, newVal in
-                            AppSettings.externalAlignerTimeoutSeconds = newVal
+                                Text(L.s.clustalXThresholdHint)
+                                    .font(.system(size: Minimal.fontXXS))
+                                    .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
+                            }
                         }
                     }
                 }
                 .padding(.vertical, 2)
             }
 
-            Spacer()
+            SheetHairline()
+                .padding(.top, Minimal.space3)
+
             HStack {
                 Spacer()
-                MinimalPrimaryButton(title: L.s.settingsDone) { isPresented = false }
+                MinimalSecondaryButton(title: L.s.settingsDone) { isPresented = false }
                     .keyboardShortcut(.defaultAction)
             }
+            .padding(.top, Minimal.space3)
         }
         .padding(Minimal.space5)
-        .frame(width: 480)
-        .frame(minHeight: 440, maxHeight: 560)
+        .frame(width: 460)
+        .frame(minHeight: 400, maxHeight: 540)
         .minimalSheetContainer()
     }
 
-    private func settingLabel(_ text: String) -> some View {
-        Text(text)
-            .font(.system(size: Minimal.fontSM))
-            .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
-            .frame(width: labelWidth, alignment: .leading)
+    /// 一组设置行，行距统一
+    private func rows<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: Minimal.space2) {
+            content()
+        }
+    }
+
+    /// 标签列定宽 + 控件左缘对齐
+    private func settingRow<Content: View>(_ label: String, @ViewBuilder _ control: () -> Content) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: Minimal.space2) {
+            Text(label)
+                .font(.system(size: Minimal.fontXXS))
+                .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
+                .lineLimit(1)
+                .frame(width: labelWidth, alignment: .leading)
+            control()
+            Spacer(minLength: 0)
+        }
+        .frame(minHeight: 28)
     }
 }

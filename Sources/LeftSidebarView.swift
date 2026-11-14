@@ -1,8 +1,8 @@
 //  LeftSidebarView.swift
-//  SeqAlignMac — 左侧栏视图（从 ContentView.swift 拆分）
+//  SeqAlignMac — 左侧栏
 //
-//  包含：文件/分析/配色/视图编辑/缩放/导出/系统分组按钮。
-//  配色方案改为下拉菜单（UI5 修复），搜索栏常驻顶部（UI7 修复）。
+//  信息结构：文件 / 编辑 / 分析 / 显示 / 导出 / 系统。分组只承载“到哪里做事”，
+//  不重复解释功能；行高 28、图标列 16、文字列统一左边界，保证纵向光学对齐。
 
 import AppKit
 import SwiftUI
@@ -14,7 +14,7 @@ struct SchemeOption: Identifiable {
     let title: String
 }
 
-// MARK: - 撤销/重做按钮
+// MARK: - 撤销/重做（单行图标组，节省纵向空间）
 
 /// 观察 WindowRegistry（editRevision + activeWorkspace 均 @Published）：
 /// 任意工作区编辑或活动标签切换都会重算禁用态。
@@ -22,19 +22,22 @@ struct UndoRedoSidebarButtons: View {
     @ObservedObject private var registry = WindowRegistry.shared
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            SidebarButton(title: L.s.toolbarUndo, systemImage: "arrow.uturn.backward") {
+        HStack(spacing: Minimal.space1) {
+            MinimalIconButton(systemImage: "arrow.uturn.backward", help: L.s.helpUndo) {
                 UndoRedoCoordinator.shared.undoCurrent()
             }
-            .help(L.s.helpUndo)
             .disabled(!UndoRedoCoordinator.shared.canUndo)
 
-            SidebarButton(title: L.s.toolbarRedo, systemImage: "arrow.uturn.forward") {
+            MinimalIconButton(systemImage: "arrow.uturn.forward", help: L.s.helpRedo) {
                 UndoRedoCoordinator.shared.redoCurrent()
             }
-            .help(L.s.helpRedo)
             .disabled(!UndoRedoCoordinator.shared.canRedo)
+
+            Spacer(minLength: 0)
         }
+        .frame(height: Minimal.controlH)
+        .padding(.leading, Minimal.space2 - 6)   // 图标在 28pt 热区内居中，左缘与 16pt 图标列对齐
+        .opacity(1)
     }
 }
 
@@ -44,7 +47,7 @@ extension ContentView {
     var leftSidebar: some View {
         VStack(spacing: 0) {
             ScrollView {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: Minimal.space1) {
                     // 文件
                     sidebarSectionHeader(L.s.sidebarGroupFile)
                     SidebarButton(title: L.s.toolbarOpen, systemImage: "folder") {
@@ -56,10 +59,12 @@ extension ContentView {
                     }
                     .help(L.s.helpSave)
                     .disabled(workspace.currentAlignment == nil)
-                    SidebarButton(title: L.s.toolbarExample, systemImage: "sparkles") {
-                        HelpManager.shared.loadExample()
-                    }
-                    .help(L.s.helpExample)
+
+                    sidebarDivider
+
+                    // 编辑
+                    sidebarSectionHeader(L.s.sidebarGroupEdit)
+                    UndoRedoSidebarButtons()
 
                     sidebarDivider
 
@@ -95,16 +100,16 @@ extension ContentView {
                     .help(L.s.toolbarLogo)
                     .disabled(workspace.currentAlignment == nil)
 
-                    SidebarButton(title: L.s.toolbarTree, systemImage: "point.3.filled.connected.trianglepath.dotted") {
-                        showTreeSheet = true
-                    }
-                    .help(L.s.toolbarTree)
-                    .disabled(workspace.currentAlignment == nil)
-
                     SidebarButton(title: L.s.toolbarWindowChart, systemImage: "waveform.path.ecg") {
                         showWindowChartSheet = true
                     }
                     .help(L.s.toolbarWindowChart)
+                    .disabled(workspace.currentAlignment == nil)
+
+                    SidebarButton(title: L.s.toolbarTree, systemImage: "point.3.filled.connected.trianglepath.dotted") {
+                        showTreeSheet = true
+                    }
+                    .help(L.s.toolbarTree)
                     .disabled(workspace.currentAlignment == nil)
 
                     SidebarButton(title: L.s.toolbarAnnotation, systemImage: "tag") {
@@ -115,13 +120,12 @@ extension ContentView {
 
                     sidebarDivider
 
-                    // 配色（带分组标题）
+                    // 显示：配色、搜索、差异、图例、缩放
                     sidebarSectionHeader(L.s.toolbarColorScheme)
                     sidebarSchemePicker
 
                     sidebarDivider
 
-                    // 视图/编辑
                     sidebarSectionHeader(L.s.sidebarGroupView)
                     SidebarButton(title: L.s.toolbarSearch, systemImage: "magnifyingglass",
                                   isActive: workspace.isSearching) {
@@ -135,12 +139,12 @@ extension ContentView {
                     .help(L.s.helpSearch)
                     .disabled(workspace.currentAlignment == nil)
 
-                    SidebarButton(title: L.s.toolbarDifference, systemImage: "rectangle.and.rectangle.tilted.right",
+                    SidebarButton(title: L.s.toolbarDifference, systemImage: "rectangle.split.2x1",
                                   isActive: workspace.differenceMode) {
                         if workspace.differenceMode {
                             workspace.differenceMode = false
                         } else {
-                            // 以当前光标行为参考行（ 参考序列模式）
+                            // 以当前光标行为参考行（参考序列模式）
                             workspace.referenceRow = cursorRow
                             workspace.differenceMode = true
                         }
@@ -156,17 +160,11 @@ extension ContentView {
                         LegendPopover(scheme: workspace.currentScheme)
                     }
 
-                    // 撤销/重做禁用态跟随（纯栈操作后按钮禁用态可能滞留，需显式刷新）
-                    UndoRedoSidebarButtons()
-
-                    sidebarDivider
-
-                    // 缩放
                     sidebarZoomControls
 
                     sidebarDivider
 
-                    // 导出（分组标题 + 图像/序列两个子菜单，不再重复「导出」字样）
+                    // 导出：图像 / 序列两个子菜单，分组标题不重复「导出」字样
                     sidebarSectionHeader(L.s.sidebarGroupExport)
                     sidebarExportMenu
 
@@ -183,48 +181,53 @@ extension ContentView {
                     }
                     .help(L.s.helpSettings)
                 }
-                .padding(.vertical, 8)
-                .padding(.horizontal, 6)
+                .padding(.vertical, Minimal.space2)
+                .padding(.horizontal, Minimal.space2 - 2)
             }
 
             Spacer(minLength: 0)
 
             // 底部固定区：外观 + 语言
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: Minimal.space2 - 2) {
                 Rectangle()
                     .fill(Color(Minimal.border(dark: isDarkAppearance)))
-                    .frame(height: 1)
+                    .frame(height: Minimal.hairline)
 
                 ThemeSwitchMenu()
                 LanguageSwitchButton()
             }
-            .padding(.horizontal, 6)
-            .padding(.bottom, 8)
+            .padding(.horizontal, Minimal.space2 - 2)
+            .padding(.bottom, Minimal.space2)
         }
         .frame(width: leftSidebarWidth)
-        .background(Color(Minimal.controlSurface(dark: isDarkAppearance)))
+        .background(Color(Minimal.panel(dark: isDarkAppearance)))
+        // 与内容区之间只留一条 0.5pt 分隔线，面板本身不再加边框
+        .overlay(alignment: .trailing) {
+            Rectangle()
+                .fill(Color(Minimal.border(dark: isDarkAppearance)))
+                .frame(width: Minimal.hairline)
+        }
     }
 
     var sidebarDivider: some View {
         Rectangle()
             .fill(Color(Minimal.border(dark: isDarkAppearance)))
-            .frame(height: 1)
-            .opacity(Minimal.dividerOpacity)   // opacity 令牌化
-            .padding(.vertical, Minimal.space1 + 2)   // 分组间垂直呼吸，保证各组间距均匀
+            .frame(height: Minimal.hairline)
+            .padding(.vertical, Minimal.space2 - 2)   // 分组间呼吸：上下各 6pt
     }
 
     func sidebarSectionHeader(_ title: String) -> some View {
         Text(title.uppercased())
             .font(.system(size: Minimal.fontXXS, weight: .semibold))
-            .foregroundColor(Color(Minimal.textFaint(dark: isDarkAppearance)))
+            .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
             .tracking(0.5)
             .padding(.leading, Minimal.space2)
-            .padding(.top, Minimal.space1 + 2)
+            .padding(.top, Minimal.space1)
             .padding(.bottom, Minimal.space1)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    // MARK: 配色选择器（SidebarMenuButton：与普通侧栏按钮像素级对齐）
+    // MARK: 配色选择器（与普通侧栏按钮像素级对齐）
     var sidebarSchemePicker: some View {
         SidebarMenuButton(
             title: currentSchemeName,
@@ -254,48 +257,51 @@ extension ContentView {
         ]
     }
 
-    // MARK: 缩放控制（segmented control 风格）
+    // MARK: 缩放控制（分段控件：外框 6，内段透明，0.5pt 分隔线）
     var sidebarZoomControls: some View {
-        VStack(alignment: .leading, spacing: Minimal.space1) {
-            // 分组标题复用 sidebarSectionHeader
-            sidebarSectionHeader(L.s.toolbarZoom)
-
-            HStack(spacing: 0) {
-                ZoomSegmentButton(systemImage: "minus.magnifyingglass",
-                                  help: L.s.helpZoomOut) { ZoomManager.shared.zoomOut() }
-
-                // 分隔线
-                Rectangle().fill(Color(Minimal.border(dark: isDarkAppearance))).frame(width: 1)
-
-                // 百分比
-                Button(action: { ZoomManager.shared.reset() }) {
-                    Text("\(Int(workspace.fontSize / Workspace.defaultFontSize * 100))%")
-                        .font(.system(size: Minimal.fontXS, weight: .medium))
-                        .monospacedDigit()
-                        .frame(maxWidth: .infinity, minHeight: Minimal.controlH)
-                        .contentShape(Rectangle())
-                        .background(Color.clear)
-                }
-                .buttonStyle(MinimalButtonStyle())
-                .help(L.s.helpZoomReset)
-                .accessibilityLabel(L.s.helpZoomReset)
-                // 缩放比例动态播报
-                .accessibilityValue("\(Int(workspace.fontSize / Workspace.defaultFontSize * 100))%")
-
-                // 分隔线
-                Rectangle().fill(Color(Minimal.border(dark: isDarkAppearance))).frame(width: 1)
-
-                ZoomSegmentButton(systemImage: "plus.magnifyingglass",
-                                  help: L.s.helpZoomIn) { ZoomManager.shared.zoomIn() }
+        HStack(spacing: 0) {
+            ZoomSegmentButton(systemImage: "minus", help: L.s.helpZoomOut) {
+                ZoomManager.shared.zoomOut()
             }
-            .background(RoundedRectangle(cornerRadius: Minimal.radiusSM, style: .continuous)
-                .fill(Color(Minimal.card(dark: isDarkAppearance))))
-            .overlay(RoundedRectangle(cornerRadius: Minimal.radiusSM, style: .continuous)
-                .stroke(Color(Minimal.border(dark: isDarkAppearance)), lineWidth: 1))
+
+            Rectangle()
+                .fill(Color(Minimal.border(dark: isDarkAppearance)))
+                .frame(width: Minimal.hairline)
+
+            Button(action: { ZoomManager.shared.reset() }) {
+                Text("\(Int(workspace.fontSize / Workspace.defaultFontSize * 100))%")
+                    .font(.system(size: Minimal.fontXXS, weight: .medium))
+                    .monospacedDigit()
+                    .frame(maxWidth: .infinity, minHeight: Minimal.controlH)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(MinimalButtonStyle())
+            .help(L.s.helpZoomReset)
+            .accessibilityLabel(L.s.helpZoomReset)
+            .accessibilityValue("\(Int(workspace.fontSize / Workspace.defaultFontSize * 100))%")
+
+            Rectangle()
+                .fill(Color(Minimal.border(dark: isDarkAppearance)))
+                .frame(width: Minimal.hairline)
+
+            ZoomSegmentButton(systemImage: "plus", help: L.s.helpZoomIn) {
+                ZoomManager.shared.zoomIn()
+            }
         }
+        .frame(height: Minimal.controlH)
+        .background(
+            RoundedRectangle(cornerRadius: Minimal.radiusSM, style: .continuous)
+                .fill(Color(Minimal.surface(dark: isDarkAppearance)))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: Minimal.radiusSM, style: .continuous)
+                .stroke(Color(Minimal.border(dark: isDarkAppearance)), lineWidth: Minimal.hairline)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: Minimal.radiusSM, style: .continuous))
+        .padding(.horizontal, Minimal.space2)
     }
 
-    /// 缩放三联按钮（含 hover / 按压反馈）
+    /// 缩放分段按钮（内段无自身圆角，由外框统一裁切，避免内圆角与外圆角不同心）
     private struct ZoomSegmentButton: View {
         let systemImage: String
         let help: String
@@ -306,10 +312,10 @@ extension ContentView {
         var body: some View {
             Button(action: action) {
                 Image(systemName: systemImage)
-                    .font(.system(size: Minimal.fontSM))
-                    .frame(width: Minimal.controlH + Minimal.space2, height: Minimal.controlH)
+                    .font(.system(size: Minimal.fontXS, weight: .medium))
+                    .frame(width: 34, height: Minimal.controlH)
                     .background(hovered && isEnabled
-                                ? Color(Minimal.border(dark: isDarkAppearance).withAlphaComponent(0.4))
+                                ? Color(Minimal.hover(dark: NSAppearance.isDarkNow))
                                 : Color.clear)
                     .contentShape(Rectangle())
             }
@@ -320,11 +326,11 @@ extension ContentView {
         }
     }
 
-    // MARK: 导出菜单（分组标题已由 sidebarGroupExport 提供，此处不再重复「导出」文字）
+    // MARK: 导出菜单
     var sidebarExportMenu: some View {
         let hasAlignment = workspace.currentAlignment != nil
         return VStack(alignment: .leading, spacing: Minimal.space1) {
-            // 图像导出（SidebarMenuButton：与普通侧栏按钮像素级对齐）
+            // 图像导出
             SidebarMenuButton(
                 title: L.s.exportImage,
                 systemImage: "photo",
@@ -342,7 +348,7 @@ extension ContentView {
             )
             .help(L.s.helpExport)
 
-            // 序列导出（SidebarMenuButton：与普通侧栏按钮像素级对齐）
+            // 序列导出
             SidebarMenuButton(
                 title: L.s.exportSequence,
                 systemImage: "doc.text",

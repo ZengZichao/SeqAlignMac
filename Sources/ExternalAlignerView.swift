@@ -17,6 +17,7 @@ struct ExternalAlignerView: View {
     @State private var runningTask: Process?
     @State private var timeoutWork: DispatchWorkItem?
     @State private var cancelRequested = false
+    @State private var timeoutSeconds: Int = AppSettings.externalAlignerTimeoutSeconds
 
     /// 预设 = 显示名 + 命令模板。模板中 {input}/{output} 为文件占位符；
     /// captureStdout = true 时结果取进程 stdout（mafft 的输出方式），忽略 {output}。
@@ -34,86 +35,110 @@ struct ExternalAlignerView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text(L.s.alignerTitle).font(.system(size: Minimal.fontXL, weight: .semibold))
-            Text(L.s.alignerDesc)
-                .font(.system(size: Minimal.fontXS))
-                .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
-                .fixedSize(horizontal: false, vertical: true)
+        VStack(alignment: .leading, spacing: 0) {
+            SheetTitle(text: L.s.alignerTitle)
+                .padding(.bottom, Minimal.space4)
 
-            HStack(alignment: .center, spacing: 12) {
-                Text(L.s.alignerLabel)
-                    .font(.system(size: Minimal.fontSM))
-                    .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
-                    .frame(width: 68, alignment: .leading)
-                Picker("", selection: $selectedPreset) {
-                    ForEach(presets, id: \.name) { p in
-                        Text(p.name).tag(p.name)
-                    }
-                }
-                .pickerStyle(.menu)
-                .frame(width: 220, alignment: .leading)
-                .fixedSize(horizontal: false, vertical: true)
-                .onChange(of: selectedPreset) { _, newPreset in
-                    if let p = presets.first(where: { $0.name == newPreset }) {
-                        path = p.cmd
-                    }
-                }
-                .frame(minWidth: 220, alignment: .leading)
-            }
-
-            MinimalTextField(placeholder: L.s.alignerPlaceholder, text: $path)
-            Text(String(format: L.s.alignerExample, "{input}", "{output}"))
-                .font(.system(size: Minimal.fontXS))
-                .foregroundColor(Color(Minimal.textFaint(dark: isDarkAppearance)))
-                .font(.system(size: Minimal.fontXS))
-                .foregroundColor(Color(Minimal.textFaint(dark: isDarkAppearance)))
-
-            if let err = runError {
-                HStack(spacing: 6) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundColor(Color(Minimal.destructive(dark: isDarkAppearance)))
-                    Text(err)
-                        .font(.system(size: Minimal.fontXS))
-                        .foregroundColor(Color(Minimal.destructive(dark: isDarkAppearance)))
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-
-            if isRunning {
-                HStack(spacing: 8) {
-                    ProgressView()
-                        .controlSize(.small)
-                    Text(L.s.alignerRunning)
-                        .font(.system(size: Minimal.fontXS))
-                        .lineLimit(1)
+            VStack(alignment: .leading, spacing: Minimal.space2) {
+                // 预设与命令分成两行：先选工具，再决定是否改参数，不必同时判断
+                HStack(alignment: .firstTextBaseline, spacing: Minimal.space2) {
+                    Text(L.s.alignerPresetLabel)
+                        .font(.system(size: Minimal.fontXXS))
                         .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
+                        .frame(width: 40, alignment: .leading)
+                    Picker("", selection: $selectedPreset) {
+                        ForEach(presets, id: \.name) { p in
+                            Text(p.name).tag(p.name)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .labelsHidden()
+                    .frame(width: 220, alignment: .leading)
+                    .onChange(of: selectedPreset) { _, newPreset in
+                        if let p = presets.first(where: { $0.name == newPreset }) {
+                            path = p.cmd
+                        }
+                    }
+                    Spacer(minLength: 0)
+                }
+                .frame(minHeight: 28)
+
+                Text(L.s.alignerLabel)
+                    .font(.system(size: Minimal.fontXXS))
+                    .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
+
+                MinimalTextField(placeholder: L.s.alignerPlaceholder, text: $path)
+
+                // 占位符语法必须可见：这是命令行能正确取到输入与输出的唯一约定
+                Text(String(format: L.s.alignerExample, "{input}", "{output}"))
+                    .font(.system(size: Minimal.fontXXS, design: .monospaced))
+                    .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
+                    .lineLimit(1)
+
+                HStack(alignment: .firstTextBaseline, spacing: Minimal.space2) {
+                    Text(L.s.alignerTimeoutLabel)
+                        .font(.system(size: Minimal.fontXXS))
+                        .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
+                        .frame(width: 40, alignment: .leading)
+                    Stepper(value: $timeoutSeconds, in: 30...3600, step: 30) {
+                        Text("\(timeoutSeconds) s")
+                            .font(.system(size: Minimal.fontXS, design: .monospaced))
+                            .foregroundColor(Color(Minimal.text(dark: isDarkAppearance)))
+                            .frame(width: 64, alignment: .leading)
+                    }
+                    .onChange(of: timeoutSeconds) { _, newValue in
+                        AppSettings.externalAlignerTimeoutSeconds = newValue
+                    }
+                    .accessibilityLabel(L.s.alignerTimeoutLabel)
+                    Spacer(minLength: 0)
+                }
+                .frame(minHeight: 28)
+
+                if let err = runError {
+                    HStack(alignment: .top, spacing: Minimal.space1 + 2) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: Minimal.fontXXS))
+                            .foregroundColor(Color(Minimal.destructive(dark: isDarkAppearance)))
+                        Text(err)
+                            .font(.system(size: Minimal.fontXXS))
+                            .foregroundColor(Color(Minimal.destructive(dark: isDarkAppearance)))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.top, Minimal.space1)
+                }
+
+                if isRunning {
+                    HStack(spacing: Minimal.space2) {
+                        ProgressView().controlSize(.small)
+                        Text(L.s.alignerRunning)
+                            .font(.system(size: Minimal.fontXXS))
+                            .lineLimit(1)
+                            .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
+                    }
+                    .padding(.top, Minimal.space1)
                 }
             }
 
-            HStack {
+            Spacer(minLength: Minimal.space4)
+
+            SheetHairline()
+
+            HStack(spacing: Minimal.space2) {
                 Spacer()
                 MinimalSecondaryButton(title: L.s.cancel) {
                     if !isRunning { isPresented = false }
                 }
                 .disabled(isRunning)
-                Button(action: { if isRunning { cancelRun() } else { run() } }) {
-                    Text(isRunning ? L.s.alignerTerminate : L.s.alignerRun)
-                        .font(.system(size: Minimal.fontSM, weight: .medium))
-                        .lineLimit(1)
-                        .foregroundColor(Color(Minimal.surface(dark: isDarkAppearance)))
-                        .padding(.horizontal, Minimal.space4 - Minimal.space1)
-                        .frame(height: Minimal.controlH)
-                        .background(RoundedRectangle(cornerRadius: Minimal.radiusSM, style: .continuous)
-                            .fill(Color(Minimal.primary(dark: isDarkAppearance))))
-                        .contentShape(Rectangle())
+                MinimalPrimaryButton(title: isRunning ? L.s.alignerTerminate : L.s.alignerRun,
+                                     systemImage: isRunning ? "stop.fill" : "play.fill") {
+                    if isRunning { cancelRun() } else { run() }
                 }
-                .buttonStyle(MinimalButtonStyle())
                 .keyboardShortcut(.return)
             }
+            .padding(.top, Minimal.space3)
         }
         .padding(Minimal.space5)
-        .frame(width: 460, height: 300)
+        .frame(width: 500, height: 320)
         .minimalSheetContainer()
         .onAppear {
             // 首次打开时 path 为空则填充当前预设的命令模板，

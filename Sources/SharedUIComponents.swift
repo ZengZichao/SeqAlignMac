@@ -54,16 +54,12 @@ extension View {
         modifier(AppearanceObservingModifier())
     }
 
+    /// 弹窗容器：只铺 surface 底色。圆角与投影由系统 sheet 窗口提供，
+    /// 内容区再画一层圆角描边只会形成“卡中卡”的双重边框。
     func minimalSheetContainer() -> some View {
         let dark = NSAppearance.isDarkNow
         return self
-            .background(RoundedRectangle(cornerRadius: Minimal.radiusMD)
-                .fill(Color(Minimal.surface(dark: dark))))
-            .overlay(RoundedRectangle(cornerRadius: Minimal.radiusMD)
-                .stroke(Color(Minimal.border(dark: dark)), lineWidth: 1))
-            // 多层阴影改用 Minimal.shadowLG() 令牌
-            .shadow(color: Color(Minimal.shadowLG()[0].color), radius: Minimal.shadowLG()[0].radius, x: 0, y: Minimal.shadowLG()[0].offset.height)
-            .shadow(color: Color(Minimal.shadowLG()[1].color), radius: Minimal.shadowLG()[1].radius, x: 0, y: Minimal.shadowLG()[1].offset.height)
+            .background(Color(Minimal.surface(dark: dark)))
             // 弹窗内 NSScrollView 一并应用细滚动条
             .thinScrollbars()
             // 弹窗根挂接系统外观变化监听
@@ -83,10 +79,12 @@ struct SidebarButton: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 6) {
+            HStack(spacing: Minimal.space2) {
                 Image(systemName: systemImage)
                     .font(.system(size: Minimal.fontXS, weight: .medium))
-                    .frame(width: 16)
+                    // 固定 16pt 图标框：不同 SF Symbol 的光学宽度差异在此归一，
+                    // 文字左边界因此严格落在同一列
+                    .frame(width: 16, height: 16, alignment: .center)
                 Text(title)
                     .font(.system(size: Minimal.fontSM, weight: isActive ? .medium : .regular))
                     .lineLimit(1)
@@ -95,18 +93,15 @@ struct SidebarButton: View {
             }
             .frame(height: Minimal.controlH)
             .padding(.horizontal, Minimal.space2)
-            // hover 仅填充，无边框；激活态用更深填充 + 主色文字
+            // 悬停 gray-4，激活 gray-5；只换底色，不加边框与左侧色条
             .background(RoundedRectangle(cornerRadius: Minimal.radiusSM, style: .continuous)
                 .fill(isActive && isEnabled
-                      ? Color(Minimal.accentSoft(dark: isDarkAppearance))
-                      : (hovered && isEnabled ? Color(Minimal.card(dark: isDarkAppearance)) : Color.clear)))
+                      ? Color(Minimal.selected(dark: isDarkAppearance))
+                      : (hovered && isEnabled ? Color(Minimal.hover(dark: isDarkAppearance)) : Color.clear)))
             .contentShape(Rectangle())
         }
-        // 按压态（主题已有 MinimalButtonStyle：侧栏按钮 hover 有反馈、按下无反馈）
         .buttonStyle(MinimalButtonStyle())
-        .foregroundColor(Color(isActive
-            ? Minimal.primary(dark: isDarkAppearance)
-            : Minimal.text(dark: isDarkAppearance)))
+        .foregroundColor(Color(Minimal.text(dark: isDarkAppearance)))
         .opacity(isEnabled ? 1 : Minimal.disabledOpacity)
         .onHover { hovered = $0 }
         .accessibilityElement(children: .combine)
@@ -148,25 +143,26 @@ struct SidebarMenuButton: View {
 
     var body: some View {
         Button(action: popup) {
-            HStack(spacing: 6) {
+            HStack(spacing: Minimal.space2) {
                 Image(systemName: systemImage)
                     .font(.system(size: Minimal.fontXS, weight: .medium))
-                    .frame(width: 16)
+                    .frame(width: 16, height: 16, alignment: .center)
                 Text(title)
                     .font(.system(size: Minimal.fontSM, weight: .regular))
                     .lineLimit(1)
                     .truncationMode(.tail)
                 Spacer(minLength: 0)
                 if showChevron {
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(.system(size: Minimal.fontXXS))
-                        .foregroundColor(Color(Minimal.textFaint(dark: isDarkAppearance)))
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 9, weight: .semibold))
+                        .frame(width: 12, height: 12, alignment: .trailing)
+                        .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
                 }
             }
             .frame(height: Minimal.controlH)
             .padding(.horizontal, Minimal.space2)
             .background(RoundedRectangle(cornerRadius: Minimal.radiusSM, style: .continuous)
-                .fill(hovered && !isDisabled ? Color(Minimal.card(dark: isDarkAppearance)) : Color.clear))
+                .fill(hovered && !isDisabled ? Color(Minimal.hover(dark: isDarkAppearance)) : Color.clear))
             .contentShape(Rectangle())
         }
         // 补按压态
@@ -504,44 +500,35 @@ struct AlignmentCanvasRepresentable: NSViewRepresentable {
 // MARK: - 空状态引导卡片
 
 struct EmptyStateView: View {
-    @State private var appeared = false
     /// logo 从磁盘只读一次
     private static let logoImage: NSImage? = Bundle.main.url(forResource: "logo", withExtension: "svg")
         .flatMap { NSImage(contentsOf: $0) }
 
     var body: some View {
-        VStack(spacing: 18) {
+        VStack(spacing: Minimal.space5) {
             logoMark
-                .frame(width: 72, height: 72)
+                .frame(width: 64, height: 64)
+            // 唯一的衬线标题：空状态是应用的第一屏，给一次性叙事语气，
+            // 其余界面一律无衬线，避免与工具性界面争夺注意力
             Text(L.s.emptyTitle)
-                .font(.system(size: Minimal.font2XL, weight: .semibold))
-            VStack(spacing: 6) {
-                Text(L.s.emptyDesc1)
-                Text(L.s.emptyDesc2)
-            }
-            .font(.system(size: Minimal.fontSM))
-            .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
-            HStack(spacing: 12) {
-                MinimalPrimaryButton(title: L.s.emptyOpenFile, systemImage: "folder", height: Minimal.controlLG) {
+                .font(.system(size: Minimal.font2XL, weight: .semibold, design: .serif))
+                .foregroundColor(Color(Minimal.text(dark: isDarkAppearance)))
+            HStack(spacing: Minimal.space3) {
+                // 两枚按钮共用同一宽度与高度，圆角矩形尺寸完全一致；
+                // 宽度按较长标签（English “Load Example”）预留，中文两侧留白对称
+                MinimalPrimaryButton(title: L.s.emptyOpenFile, systemImage: "folder",
+                                     height: Minimal.controlLG, minWidth: 132) {
                     OpenFileManager.shared.openFile()
                 }
-                MinimalSecondaryButton(title: L.s.emptyLoadExample, systemImage: "sparkles", height: Minimal.controlLG) {
+                MinimalSecondaryButton(title: L.s.emptyLoadExample, systemImage: "doc.text",
+                                       height: Minimal.controlLG, minWidth: 132) {
                     HelpManager.shared.loadExample()
                 }
             }
-            .padding(.top, 4)
+            .padding(.top, Minimal.space1)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(Minimal.surface(dark: isDarkAppearance)))
-        .opacity(appeared ? 1 : 0)
-        .offset(y: appeared ? 0 : 8)
-        .onAppear {
-            if Minimal.shouldReduceMotion {
-                appeared = true
-            } else {
-                withAnimation(.easeOut(duration: 0.45)) { appeared = true }
-            }
-        }
     }
 
     @ViewBuilder
@@ -552,12 +539,12 @@ struct EmptyStateView: View {
                 .scaledToFit()
         } else {
             let dark = isDarkAppearance
-            RoundedRectangle(cornerRadius: Minimal.radiusLG)
+            RoundedRectangle(cornerRadius: Minimal.radiusXS)
                 .fill(Color(Minimal.primary(dark: dark)))
                 .overlay(
                     Text("Σ")
-                        .font(.system(size: 34, weight: .bold))
-                        .foregroundColor(Color(Minimal.surface(dark: dark)))
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundColor(Color(Minimal.onPrimary(dark: dark)))
                 )
         }
     }
@@ -583,39 +570,29 @@ enum PendingWindowData {
 
 struct ThemeSwitchMenu: View {
     @ObservedObject private var store = AppearanceStore.shared
-    @State private var hovered = false
 
     var body: some View {
-        Menu {
-            Button(L.s.settingsLight) { store.apply(.light) }
-            Button(L.s.settingsDark) { store.apply(.dark) }
-            Button(L.s.settingsSystem) { store.apply(.system) }
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: store.systemImage)
-                    .font(.system(size: Minimal.fontSM))
-                    .frame(width: 16)
-                Text(L.s.toolbarAppearance)
-                    .font(.system(size: Minimal.fontSM))
-                    .lineLimit(1)
-                Spacer(minLength: 0)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .frame(height: Minimal.controlH)
-            .padding(.horizontal, Minimal.space2)
-            // hover 仅填充，无边框
-            .background(RoundedRectangle(cornerRadius: Minimal.radiusSM, style: .continuous)
-                .fill(hovered ? Color(Minimal.card(dark: isDarkAppearance)) : Color.clear))
-            .contentShape(Rectangle())
-        }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
-        .frame(maxWidth: .infinity)
-        .fixedSize(horizontal: false, vertical: true)
-        .onHover { hovering in
-            hovered = hovering
-        }
+        // 与侧栏其他行共用同一套行高、图标框与 hover 底色；用 NSMenu 弹出，
+        // 避免 SwiftUI Menu 自带内边距把图标和文字推离公共左缘
+        SidebarMenuButton(
+            title: L.s.toolbarAppearance,
+            systemImage: store.systemImage,
+            entries: [
+                .item(L.s.settingsLight) { store.apply(.light) },
+                .item(L.s.settingsDark) { store.apply(.dark) },
+                .item(L.s.settingsSystem) { store.apply(.system) },
+            ],
+            currentItemIndex: appearanceIndex
+        )
         .help(L.s.helpAppearance)
+    }
+
+    private var appearanceIndex: Int {
+        switch store.mode {
+        case .light: return 0
+        case .dark: return 1
+        case .system: return 2
+        }
     }
 }
 
@@ -623,37 +600,17 @@ struct ThemeSwitchMenu: View {
 
 struct LanguageSwitchButton: View {
     @ObservedObject private var lang = LanguageManager.shared
-    @State private var hovered = false
 
     var body: some View {
-        Menu {
-            Button(L.s.menuChinese) { lang.set(.zh) }
-            Button(L.s.menuEnglish) { lang.set(.en) }
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: lang.language.systemImage)
-                    .font(.system(size: Minimal.fontSM))
-                    .frame(width: 16)
-                Text(L.s.toolbarLanguage)
-                    .font(.system(size: Minimal.fontSM))
-                    .lineLimit(1)
-                Spacer(minLength: 0)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .frame(height: Minimal.controlH)
-            .padding(.horizontal, Minimal.space2)
-            // hover 仅填充，无边框
-            .background(RoundedRectangle(cornerRadius: Minimal.radiusSM, style: .continuous)
-                .fill(hovered ? Color(Minimal.card(dark: isDarkAppearance)) : Color.clear))
-            .contentShape(Rectangle())
-        }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
-        .frame(maxWidth: .infinity)
-        .fixedSize(horizontal: false, vertical: true)
-        .onHover { hovering in
-            hovered = hovering
-        }
+        SidebarMenuButton(
+            title: L.s.toolbarLanguage,
+            systemImage: lang.language.systemImage,
+            entries: [
+                .item(L.s.menuChinese) { lang.set(.zh) },
+                .item(L.s.menuEnglish) { lang.set(.en) },
+            ],
+            currentItemIndex: lang.language == .zh ? 0 : 1
+        )
         .help(L.s.helpLanguage)
     }
 }

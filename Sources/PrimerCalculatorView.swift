@@ -1,7 +1,9 @@
 //  PrimerCalculatorView.swift
-//  SeqAlignMac — 引物计算器弹窗（从 ToolSheetViews.swift 拆分）
+//  SeqAlignMac — 引物计算
 //
-//  提供 Tm、GC%、自二聚体、异源二聚体计算。
+//  一次「计算」给出 Tm、GC 含量与二聚体检查：这四类结果由同一组输入决定，
+//  拆成四个按钮只会让用户逐个判断该按哪个。参数与结果左右分栏，
+//  输入区固定宽度、结果区占满剩余空间，扫读时不需要在纵向堆叠里找。
 
 import AppKit
 import SwiftUI
@@ -56,94 +58,35 @@ struct PrimerCalculatorView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text(L.s.primerTitle).font(.system(size: Minimal.fontXL, weight: .semibold))
+        VStack(alignment: .leading, spacing: 0) {
+            SheetTitle(text: L.s.primerTitle)
+                .padding(.bottom, Minimal.space4)
 
-            VStack(alignment: .leading, spacing: 8) {
-                Text(L.s.primerSeqA)
-                HStack(spacing: 8) {
-                    MinimalTextField(placeholder: L.s.primerPlaceholderA, text: $seqA)
-                    MinimalBarButton(title: L.s.primerFromSel) { fillFromSelection() }
-                        .disabled(WindowRegistry.shared.activeForAction?.currentSelection == nil)
-                }
+            HStack(alignment: .top, spacing: Minimal.space5) {
+                inputColumn
+                    .frame(width: 280)
 
-                Text(L.s.primerSeqB)
-                MinimalTextField(placeholder: L.s.primerPlaceholderB, text: $seqB)
+                Rectangle()
+                    .fill(Color(Minimal.border(dark: isDarkAppearance)))
+                    .frame(width: Minimal.hairline)
 
-                // 盐浓度 / 寡链浓度（参与 Tm 与盐校正，持久化）
-                HStack(spacing: 8) {
-                    parameterField(label: L.s.primerNa, value: $na_mM, suffix: "mM")
-                    parameterField(label: L.s.primerMg, value: $mg_mM, suffix: "mM")
-                    parameterField(label: L.s.primerOligo, value: $oligo_uM, suffix: "µM")
-                }
+                resultColumn
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
+            .frame(maxHeight: .infinity)
 
-            HStack(spacing: Minimal.space2) {
-                MinimalPrimaryButton(title: L.s.primerCalcTm) { result = computeTm() }
-                MinimalSecondaryButton(title: L.s.primerCalcGC) { result = computeGC() }
-                MinimalSecondaryButton(title: L.s.primerSelfDimer) { result = computeSelfDimer() }
-                MinimalSecondaryButton(title: L.s.primerHeteroDimer) { result = computeHeteroDimer() }
-            }
-
-            VStack(alignment: .leading, spacing: 0) {
-                ScrollView {
-                    if let result = result {
-                        VStack(alignment: .leading, spacing: 14) {
-                            ForEach(result.sections) { section in
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text(section.title)
-                                        .font(.system(size: Minimal.fontSM, weight: .semibold))
-                                        .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
-                                    ForEach(section.rows) { row in
-                                        HStack(alignment: .top, spacing: 8) {
-                                            Text(row.label)
-                                                .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
-                                                .frame(width: 68, alignment: .leading)
-                                            Text(row.value)
-                                                .textSelection(.enabled)
-                                                .frame(maxWidth: .infinity, alignment: .leading)
-                                        }
-                                        .font(.system(.body, design: .monospaced))
-                                    }
-                                }
-                            }
-                            if let status = result.status {
-                                HStack(spacing: 8) {
-                                    Circle()
-                                        .fill(statusColor(status))
-                                        .frame(width: 10, height: 10)
-                                    Text(status.text)
-                                        .font(.system(size: Minimal.fontSM, weight: .medium))
-                                        .foregroundColor(statusColor(status))
-                                }
-                                .padding(.top, 4)
-                            }
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(12)
-                    } else {
-                        Text(L.s.primerResultPlaceholder)
-                            .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(12)
-                    }
-                }
-                .frame(minHeight: 150)
-            }
-            .padding(12)
-            .background(RoundedRectangle(cornerRadius: Minimal.radiusMD)
-                .fill(Color(Minimal.card(dark: isDarkAppearance))))
-            .overlay(RoundedRectangle(cornerRadius: Minimal.radiusMD)
-                .stroke(Color(Minimal.border(dark: isDarkAppearance)), lineWidth: 1))
+            SheetHairline()
+                .padding(.top, Minimal.space3)
 
             HStack {
                 Spacer()
                 MinimalSecondaryButton(title: L.s.close) { isPresented = false }
                     .keyboardShortcut(.escape)
             }
+            .padding(.top, Minimal.space3)
         }
         .padding(Minimal.space5)
-        .frame(width: 500, height: 460)
+        .frame(width: 720, height: 460)
         .minimalSheetContainer()
         .onAppear {
             if seqA.isEmpty && !prefill.isEmpty {
@@ -152,25 +95,131 @@ struct PrimerCalculatorView: View {
         }
     }
 
-    private func parameterField(label: String, value: Binding<Double>, suffix: String, lowerBound: Double = 0) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label)
-                .font(.system(size: Minimal.fontXS))
-                .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
-            HStack(spacing: 2) {
-                MinimalTextField(placeholder: "", text: Binding(
-                    get: { value.wrappedValue == 0 ? "" : String(format: "%g", value.wrappedValue) },
-                    set: { raw in
-                        // 输入校验：负值会让 sqrt/log 产出 NaN 的「伪科学结果」；
-                        // 解析失败（过渡态如 "-"、"1e"）保持原值不闪跳
-                        guard let v = Double(raw) else { return }
-                        value.wrappedValue = max(lowerBound, v.isFinite ? v : lowerBound)
+    // MARK: 输入
+
+    private var inputColumn: some View {
+        VStack(alignment: .leading, spacing: Minimal.space3) {
+            labeledField(L.s.primerSeqA) {
+                HStack(spacing: Minimal.space1) {
+                    MinimalTextField(placeholder: L.s.primerPlaceholderA, text: $seqA)
+                    // 从当前选区取序列，避免手工转录
+                    MinimalIconButton(systemImage: "textcursor", help: L.s.primerFromSel, size: 26) {
+                        fillFromSelection()
                     }
-                ))
-                Text(suffix)
+                    .disabled(WindowRegistry.shared.activeForAction?.currentSelection == nil)
+                }
+            }
+
+            labeledField(L.s.primerSeqB) {
+                MinimalTextField(placeholder: L.s.primerPlaceholderB, text: $seqB)
+            }
+
+            SheetHairline()
+                .padding(.vertical, Minimal.space1)
+
+            SheetSectionTitle(text: L.s.primerParams)
+
+            HStack(alignment: .bottom, spacing: Minimal.space2) {
+                parameterField(label: L.s.primerNa, suffix: "mM", value: $na_mM)
+                parameterField(label: L.s.primerMg, suffix: "mM", value: $mg_mM)
+                parameterField(label: L.s.primerOligo, suffix: "µM", value: $oligo_uM)
+            }
+
+            MinimalPrimaryButton(title: L.s.primerCalcTm, height: Minimal.controlLG) {
+                result = computeAll()
+            }
+            .keyboardShortcut(.defaultAction)
+            .padding(.top, Minimal.space1)
+
+            Text(L.s.primerTmLabel)
+                .font(.system(size: Minimal.fontXXS))
+                .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
+        }
+    }
+
+    private func labeledField<Content: View>(_ label: String, @ViewBuilder _ content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: Minimal.space1) {
+            Text(label)
+                .font(.system(size: Minimal.fontXXS))
+                .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
+            content()
+        }
+    }
+
+    // MARK: 结果
+
+    private var resultColumn: some View {
+        ZStack(alignment: .topLeading) {
+            Color(Minimal.card(dark: isDarkAppearance))
+            if let result = result {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: Minimal.space4) {
+                        ForEach(result.sections) { section in
+                            VStack(alignment: .leading, spacing: Minimal.space1) {
+                                Text(section.title)
+                                    .font(.system(size: Minimal.fontXXS, weight: .semibold))
+                                    .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
+                                ForEach(section.rows) { row in
+                                    HStack(alignment: .firstTextBaseline, spacing: Minimal.space2) {
+                                        Text(row.label)
+                                            .font(.system(size: Minimal.fontXXS))
+                                            .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
+                                            .frame(width: 72, alignment: .leading)
+                                        Text(row.value)
+                                            .font(.system(size: Minimal.fontXS, design: .monospaced))
+                                            .textSelection(.enabled)
+                                            .foregroundColor(Color(Minimal.text(dark: isDarkAppearance)))
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
+                                }
+                            }
+                        }
+                        if let status = result.status {
+                            HStack(spacing: Minimal.space1 + 2) {
+                                Image(systemName: isWarning(status)
+                                      ? "exclamationmark.triangle.fill"
+                                      : "checkmark.circle.fill")
+                                    .font(.system(size: Minimal.fontXXS))
+                                    .foregroundColor(statusColor(status))
+                                Text(status.text)
+                                    .font(.system(size: Minimal.fontSM, weight: .medium))
+                                    .foregroundColor(statusColor(status))
+                            }
+                        }
+                    }
+                    .padding(Minimal.space3)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            } else {
+                Text(L.s.primerResultPlaceholder)
                     .font(.system(size: Minimal.fontXS))
                     .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
+                    .padding(Minimal.space3)
             }
+        }
+        .overlay(
+            Rectangle()
+                .stroke(Color(Minimal.border(dark: isDarkAppearance)),
+                        lineWidth: Minimal.hairline)
+        )
+    }
+
+    /// 参数输入：数值框 + 单位标签。单位不进输入框，避免用户把 mM 一起删掉
+    private func parameterField(label: String, suffix: String, value: Binding<Double>) -> some View {
+        VStack(alignment: .leading, spacing: Minimal.space1) {
+            Text("\(label) \(suffix)")
+                .font(.system(size: Minimal.fontXXS))
+                .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
+                .lineLimit(1)
+            MinimalTextField(placeholder: "0", text: Binding(
+                get: { value.wrappedValue == 0 ? "" : String(format: "%g", value.wrappedValue) },
+                set: { raw in
+                    // 输入校验：负值会让 sqrt/log 产出 NaN 的「伪科学结果」；
+                    // 解析失败（过渡态如 "-"、"1e"）保持原值不闪跳
+                    guard let v = Double(raw) else { return }
+                    value.wrappedValue = max(0, v.isFinite ? v : 0)
+                }
+            ))
         }
     }
 
@@ -194,11 +243,17 @@ struct PrimerCalculatorView: View {
     private func statusColor(_ status: PrimerResultStatus) -> Color {
         switch status {
         case .safe:    return Color(Minimal.success(dark: isDarkAppearance))
-        case .warning: return Color(Minimal.destructive(dark: isDarkAppearance))
+        // 二聚体倾向是可继续使用的警示，不是错误：用 amber 而非 red
+        case .warning: return Color(Minimal.warning(dark: isDarkAppearance))
         }
     }
 
-    private func emptyInputResult(_ message: String) -> PrimerResult {
+    private func isWarning(_ status: PrimerResultStatus) -> Bool {
+        if case .warning = status { return true }
+        return false
+    }
+
+    private func errorResult(_ message: String) -> PrimerResult {
         PrimerResult(sections: [
             PrimerResultSection(title: L.s.primerCalcFail, rows: [
                 PrimerResultRow(label: L.s.primerError, value: message)
@@ -206,62 +261,49 @@ struct PrimerCalculatorView: View {
         ])
     }
 
-    private func computeTm() -> PrimerResult? {
-        guard !seqA.isEmpty else { return emptyInputResult(L.s.primerNeedSeqA) }
+    /// 一次计算全部指标：Tm、GC、自身二聚体、异源二聚体（B 非空时）
+    private func computeAll() -> PrimerResult {
+        guard !seqA.isEmpty else { return errorResult(L.s.primerNeedSeqA) }
+
+        var sections: [PrimerResultSection] = []
+        var warnings = false
+
         do {
             let (tmMin, tmMax) = try PrimerCalculator.tm(seqA, options: tmOptions)
-            return PrimerResult(sections: [
-                PrimerResultSection(title: L.s.primerTmLabel, rows: [
-                    PrimerResultRow(label: L.s.primerSeq, value: seqA.uppercased()),
-                    PrimerResultRow(label: L.s.primerTmRange, value: "\(String(format: "%.1f", tmMin))°C ~ \(String(format: "%.1f", tmMax))°C"),
-                ]),
-                PrimerResultSection(title: L.s.primerParams, rows: [
-                    PrimerResultRow(label: L.s.primerNa, value: String(format: "%.1f mM", na_mM)),
-                    PrimerResultRow(label: L.s.primerMg, value: String(format: "%.1f mM", mg_mM)),
-                    PrimerResultRow(label: L.s.primerOligo, value: String(format: "%.2f µM", oligo_uM)),
-                ]),
-            ])
+            sections.append(PrimerResultSection(title: "Tm", rows: [
+                PrimerResultRow(label: L.s.primerSeq, value: seqA.uppercased()),
+                PrimerResultRow(label: L.s.primerTmRange,
+                                value: "\(String(format: "%.1f", tmMin))–\(String(format: "%.1f", tmMax)) °C"),
+            ]))
         } catch {
-            return PrimerResult(sections: [
-                PrimerResultSection(title: L.s.primerCalcFail, rows: [
-                    PrimerResultRow(label: L.s.primerError, value: error.localizedDescription)
-                ])
-            ])
+            sections.append(PrimerResultSection(title: "Tm", rows: [
+                PrimerResultRow(label: L.s.primerError, value: error.localizedDescription)
+            ]))
         }
-    }
 
-    private func computeGC() -> PrimerResult? {
-        guard !seqA.isEmpty else { return emptyInputResult(L.s.primerNeedSeqA) }
         let gc = PrimerCalculator.gcContent(seqA)
-        return PrimerResult(sections: [
-            PrimerResultSection(title: L.s.primerGC, rows: [
-                PrimerResultRow(label: L.s.primerSeq, value: seqA.uppercased()),
-                PrimerResultRow(label: "GC%", value: String(format: "%.2f%%", gc * 100)),
-            ])
-        ])
-    }
+        sections.append(PrimerResultSection(title: L.s.primerGC, rows: [
+            PrimerResultRow(label: "GC", value: String(format: "%.2f%%", gc * 100))
+        ]))
 
-    private func computeSelfDimer() -> PrimerResult? {
-        guard !seqA.isEmpty else { return emptyInputResult(L.s.primerNeedSeqA) }
-        let dg = PrimerCalculator.dimer(seqA, mode: .selfDimer)
-        return PrimerResult(sections: [
-            PrimerResultSection(title: L.s.primerSelfDimerTitle, rows: [
-                PrimerResultRow(label: L.s.primerSeq, value: seqA.uppercased()),
-                PrimerResultRow(label: L.s.primerDG, value: "\(String(format: "%.2f", dg)) kcal/mol"),
-            ])
-        ], status: dg < -5 ? .warning(L.s.primerWarnDimer) : .safe(L.s.primerSafeDimer))
-    }
+        let selfDg = PrimerCalculator.dimer(seqA, mode: .selfDimer)
+        if selfDg < -5 { warnings = true }
+        sections.append(PrimerResultSection(title: L.s.primerSelfDimerTitle, rows: [
+            PrimerResultRow(label: L.s.primerDG, value: "\(String(format: "%.2f", selfDg)) kcal/mol")
+        ]))
 
-    private func computeHeteroDimer() -> PrimerResult? {
-        if seqA.isEmpty { return emptyInputResult(L.s.primerNeedSeqA) }
-        guard !seqB.isEmpty else { return emptyInputResult(L.s.primerNeedSeqB) }
-        let dg = PrimerCalculator.dimer(seqA, b: seqB, mode: .hetero)
-        return PrimerResult(sections: [
-            PrimerResultSection(title: L.s.primerHeteroTitle, rows: [
-                PrimerResultRow(label: L.s.primerSeqALbl, value: seqA.uppercased()),
+        if !seqB.isEmpty {
+            let heteroDg = PrimerCalculator.dimer(seqA, b: seqB, mode: .hetero)
+            if heteroDg < -5 { warnings = true }
+            sections.append(PrimerResultSection(title: L.s.primerHeteroTitle, rows: [
                 PrimerResultRow(label: L.s.primerSeqBLbl, value: seqB.uppercased()),
-                PrimerResultRow(label: L.s.primerDG, value: "\(String(format: "%.2f", dg)) kcal/mol"),
-            ])
-        ], status: dg < -5 ? .warning(L.s.primerWarnDimer) : .safe(L.s.primerSafeDimer))
+                PrimerResultRow(label: L.s.primerDG, value: "\(String(format: "%.2f", heteroDg)) kcal/mol")
+            ]))
+        }
+
+        let status: PrimerResultStatus = warnings
+            ? .warning(L.s.primerWarnDimer)
+            : .safe(L.s.primerSafeDimer)
+        return PrimerResult(sections: sections, status: status)
     }
 }

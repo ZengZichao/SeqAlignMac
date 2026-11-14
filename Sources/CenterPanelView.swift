@@ -1,89 +1,157 @@
 //  CenterPanelView.swift
-//  SeqAlignMac — 中栏视图（从 ContentView.swift 拆分）
+//  SeqAlignMac — 中栏：搜索栏、画布、状态栏
 //
-//  包含：搜索栏（常驻顶部，UI7）、主画布、状态栏。
+//  搜索的默认路径只有「输入 → 回车」，范围与正则收进选项浮层：
+//  它们是需要配置一次的判断，不该常驻在每一次检索的主路径上。
 //  搜索栏 / 加载覆盖层 / Toast 拆为独立子视图，仅订阅各自的高频子模型，
 //  键入、进度、toast 不再经由 Workspace 牵连整树重算。
 
 import AppKit
 import SwiftUI
 
-// MARK: - 搜索栏（订阅 SearchTextModel，键入失效面收敛到本视图）
+// MARK: - 搜索栏
 
 struct SearchBarView: View {
     @ObservedObject var workspace: Workspace
     @ObservedObject var textModel: SearchTextModel
+    @State private var showOptions = false
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: Minimal.space2) {
             Image(systemName: "magnifyingglass")
-                .font(.system(size: Minimal.fontSM))
+                .font(.system(size: Minimal.fontXS))
+                .frame(width: 16, height: 16, alignment: .center)
                 .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
                 .accessibilityHidden(true)
-
-            searchScopeToggle
 
             MinimalTextField(placeholder: searchPlaceholder,
                              text: $textModel.text,
                              onEnter: {
-                // #8：Enter 已有命中时跳下一处，否则执行新搜索
+                // Enter 已有命中时跳下一处，否则执行新搜索
                 if !workspace.searchHits.isEmpty {
                     workspace.findNext()
                 } else {
                     workspace.performSearch()
                 }
             }, onChange: { _ in
-                // #8：逐字实时检索（防抖 300ms）
+                // 逐字实时检索（防抖 300ms）
                 workspace.searchDebounceWorkItem?.cancel()
                 let workItem = DispatchWorkItem { workspace.performSearch() }
                 workspace.searchDebounceWorkItem = workItem
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: workItem)
             })
-            .frame(maxWidth: 300)
+            .frame(maxWidth: 340)
 
-            searchRegexToggle
+            // 结果计数占据固定宽度，命中数变化时按钮不左右跳动
+            Group {
+                if workspace.searchComputing {
+                    ProgressView().controlSize(.mini)
+                } else if workspace.searchCompleted && workspace.searchHits.isEmpty && !workspace.searchText.isEmpty {
+                    Text(L.s.searchNoMatch)
+                        .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
+                } else if !workspace.searchHits.isEmpty {
+                    Text("\(workspace.currentHitIndex + 1)/\(workspace.searchHits.count)")
+                        .monospacedDigit()
+                        .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
+                }
+            }
+            .font(.system(size: Minimal.fontXS))
+            .frame(width: 64, alignment: .leading)
 
             if !workspace.searchHits.isEmpty {
-                MinimalBarButton(title: L.s.searchPrev) { workspace.findPrev() }
-                MinimalBarButton(title: L.s.searchNext) { workspace.findNext() }
+                MinimalIconButton(systemImage: "chevron.up", help: L.s.searchPrev) { workspace.findPrev() }
+                MinimalIconButton(systemImage: "chevron.down", help: L.s.searchNext) { workspace.findNext() }
             }
 
-            if workspace.searchCompleted && workspace.searchHits.isEmpty && !workspace.searchText.isEmpty {
-                Text(L.s.searchNoMatch)
+            Button {
+                showOptions.toggle()
+            } label: {
+                Image(systemName: "slider.horizontal.3")
                     .font(.system(size: Minimal.fontXS))
-                    .lineLimit(1)
+                    .frame(width: 16, height: 16)
                     .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
-            } else if !workspace.searchHits.isEmpty {
-                Text("\(workspace.currentHitIndex + 1) / \(workspace.searchHits.count)")
-                    .font(.system(size: Minimal.fontXS))
-                    .lineLimit(1)
-                    .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
-                    .monospacedDigit()
+                    .frame(width: Minimal.controlH, height: Minimal.controlH)
+                    .background(
+                        RoundedRectangle(cornerRadius: Minimal.radiusSM, style: .continuous)
+                            .fill(showOptions || workspace.searchUseRegex || workspace.searchScope != .content
+                                  ? Color(Minimal.selected(dark: isDarkAppearance)) : Color.clear)
+                    )
+                    .contentShape(Rectangle())
             }
-
-            if workspace.searchComputing {
-                ProgressView()
-                    .controlSize(.small)
+            .buttonStyle(MinimalButtonStyle())
+            .help(L.s.searchOptions)
+            .accessibilityLabel(L.s.searchOptions)
+            .popover(isPresented: $showOptions, arrowEdge: .bottom) {
+                searchOptions
             }
 
             Spacer(minLength: 0)
 
-            // 关闭搜索：隐藏搜索栏并清除高亮
-            Button(action: closeSearch) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: Minimal.fontSM))
-                    .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
-            }
-            .buttonStyle(.plain)
-            .help(L.s.searchClose)
-            .accessibilityLabel(L.s.searchClose)
+            MinimalIconButton(systemImage: "xmark", help: L.s.searchClose) { closeSearch() }
         }
-        .padding(.horizontal, Minimal.space3)
-        .padding(.vertical, 6)
-        .background(Color(Minimal.controlSurface(dark: isDarkAppearance)))
+        .padding(.leading, Minimal.space3)
+        .padding(.trailing, Minimal.space1)
+        .padding(.vertical, Minimal.space2 - 2)
+        .background(Color(Minimal.panel(dark: isDarkAppearance)))
         .overlay(alignment: .bottom) {
-            Rectangle().fill(Color(Minimal.border(dark: isDarkAppearance))).frame(height: 1)
+            Rectangle().fill(Color(Minimal.border(dark: isDarkAppearance)).opacity(0.9))
+                .frame(height: Minimal.hairline)
         }
+    }
+
+    private var searchOptions: some View {
+        VStack(alignment: .leading, spacing: Minimal.space3) {
+            // 范围与正则只需配置一次，收进浮层后默认路径只剩「输入 → 回车」
+            HStack(spacing: 0) {
+                scopeSegment(.content, title: L.s.searchScopeContent)
+                scopeSegment(.name, title: L.s.searchScopeName)
+            }
+            .frame(height: Minimal.controlH)
+            .background(
+                RoundedRectangle(cornerRadius: Minimal.radiusSM, style: .continuous)
+                    .fill(Color(Minimal.card(dark: isDarkAppearance)))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: Minimal.radiusSM, style: .continuous)
+                    .stroke(Color(Minimal.border(dark: isDarkAppearance)), lineWidth: Minimal.hairline)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: Minimal.radiusSM, style: .continuous))
+
+            Toggle(L.s.searchRegex, isOn: Binding(
+                get: { workspace.searchUseRegex },
+                set: { newValue in
+                    workspace.searchUseRegex = newValue
+                    workspace.performSearch()
+                }
+            ))
+            .toggleStyle(.switch)
+            .font(.system(size: Minimal.fontSM))
+        }
+        .padding(Minimal.space3)
+        .frame(width: 220)
+    }
+
+    private func scopeSegment(_ scope: SearchScope, title: String) -> some View {
+        let selected = workspace.searchScope == scope
+        return Button {
+            workspace.searchScope = scope
+            workspace.performSearch()
+        } label: {
+            Text(title)
+                .font(.system(size: Minimal.fontXS, weight: selected ? .medium : .regular))
+                .foregroundColor(Color(selected ? Minimal.text(dark: isDarkAppearance)
+                                                : Minimal.textMuted(dark: isDarkAppearance)))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(
+                    // 内层 4pt：外框 6pt 内缩 2pt 的同心圆角
+                    RoundedRectangle(cornerRadius: Minimal.radiusXS, style: .continuous)
+                        .fill(selected ? Color(Minimal.selected(dark: isDarkAppearance)) : .clear)
+                        .padding(2)
+                )
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(MinimalButtonStyle())
+        .accessibilityLabel(title)
     }
 
     private var searchPlaceholder: String {
@@ -101,71 +169,6 @@ struct SearchBarView: View {
         workspace.searchCompleted = false
         workspace.cancelPendingSearch()
     }
-
-    private var searchScopeToggle: some View {
-        HStack(spacing: 2) {
-            ForEach(SearchScope.allCases, id: \.rawValue) { scope in
-                searchScopePill(scope)
-            }
-        }
-        .padding(2)
-        .background(RoundedRectangle(cornerRadius: Minimal.radiusSM, style: .continuous)
-            .fill(Color(Minimal.card(dark: isDarkAppearance))))
-        .overlay(RoundedRectangle(cornerRadius: Minimal.radiusSM, style: .continuous)
-            .stroke(Color(Minimal.border(dark: isDarkAppearance)), lineWidth: 1))
-    }
-
-    private func searchScopePill(_ scope: SearchScope) -> some View {
-        let selected = workspace.searchScope == scope
-        return Button {
-            workspace.searchScope = scope
-            workspace.performSearch()
-        } label: {
-            Text(scope == .content ? L.s.searchScopeContent : L.s.searchScopeName)
-                .font(.system(size: Minimal.fontXS, weight: selected ? .medium : .regular))
-                .lineLimit(1)
-                .fixedSize(horizontal: true, vertical: false)
-                .foregroundColor(Color(selected
-                    ? Minimal.primary(dark: isDarkAppearance)   // 近黑/近白
-                    : Minimal.text(dark: isDarkAppearance)))
-                .padding(.horizontal, Minimal.space2)
-                .frame(height: Minimal.controlSM)
-                .background(RoundedRectangle(cornerRadius: Minimal.radiusSM, style: .continuous)
-                    .fill(selected ? Color(Minimal.surface(dark: isDarkAppearance)) : Color.clear))
-                .shadow(color: Color(selected ? Minimal.shadowMD()[0].color : .clear), radius: Minimal.shadowMD()[0].radius, x: 0, y: Minimal.shadowMD()[0].offset.height)
-                .shadow(color: Color(selected ? Minimal.shadowMD()[1].color : .clear), radius: Minimal.shadowMD()[1].radius, x: 0, y: Minimal.shadowMD()[1].offset.height)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .fixedSize(horizontal: true, vertical: false)
-        .accessibilityLabel(scope == .content ? L.s.searchScopeContent : L.s.searchScopeName)
-    }
-
-    private var searchRegexToggle: some View {
-        Button {
-            workspace.searchUseRegex.toggle()
-            workspace.performSearch()
-        } label: {
-            Text(L.s.searchRegex)
-                .font(.system(size: Minimal.fontXS, weight: workspace.searchUseRegex ? .medium : .regular))
-                .lineLimit(1)
-                .fixedSize(horizontal: true, vertical: false)
-                .foregroundColor(Color(workspace.searchUseRegex
-                    ? Minimal.primary(dark: isDarkAppearance)   // 近黑/近白
-                    : Minimal.text(dark: isDarkAppearance)))
-                .padding(.horizontal, Minimal.space2)
-                .frame(height: Minimal.controlH)
-                .background(RoundedRectangle(cornerRadius: Minimal.radiusSM, style: .continuous)
-                    .fill(Color(Minimal.card(dark: isDarkAppearance))))
-                .overlay(RoundedRectangle(cornerRadius: Minimal.radiusSM, style: .continuous)
-                    .stroke(Color(Minimal.border(dark: isDarkAppearance)), lineWidth: 1))
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .fixedSize(horizontal: true, vertical: false)
-        .help(workspace.searchUseRegex ? L.s.helpRegexOn : L.s.helpRegexOff)
-        .accessibilityLabel(L.s.searchRegex)
-    }
 }
 
 // MARK: - 加载覆盖层（仅订阅 LoadProgressModel）
@@ -175,21 +178,32 @@ struct LoadingOverlayView: View {
     let dark: Bool
 
     var body: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: Minimal.space3) {
             ProgressView(value: loadModel.progress)
-                .frame(width: 300)
-            Text("\(L.s.loadingText) \(Int(loadModel.progress * 100))%")
-                .lineLimit(1)
-                .foregroundColor(Color(Minimal.textMuted(dark: dark)))
-            Button(L.s.loadingCancel, role: .cancel) { loadModel.cancelLoading = true }
-                .controlSize(.small)
+                .frame(width: 260)
+            HStack(spacing: Minimal.space2) {
+                Text(L.s.loadingText)
+                    .foregroundColor(Color(Minimal.textMuted(dark: dark)))
+                Text("\(Int(loadModel.progress * 100))%")
+                    .monospacedDigit()
+                    .foregroundColor(Color(Minimal.text(dark: dark)))
+            }
+            .font(.system(size: Minimal.fontXS))
+            .lineLimit(1)
+
+            MinimalSecondaryButton(title: L.s.loadingCancel) { loadModel.cancelLoading = true }
         }
-        .frame(width: 400, height: 140)
-        .background(RoundedRectangle(cornerRadius: Minimal.radiusMD)
-            .fill(Color(Minimal.surface(dark: dark))))
-        // 多层阴影消费 shadowMD 令牌
-        .shadow(color: Color(Minimal.shadowMD()[0].color), radius: Minimal.shadowMD()[0].radius, x: 0, y: Minimal.shadowMD()[0].offset.height)
-        .shadow(color: Color(Minimal.shadowMD()[1].color), radius: Minimal.shadowMD()[1].radius, x: 0, y: Minimal.shadowMD()[1].offset.height)
+        .padding(Minimal.space5)
+        .background(
+            RoundedRectangle(cornerRadius: Minimal.radiusMD, style: .continuous)
+                .fill(Color(Minimal.surface(dark: dark)))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: Minimal.radiusMD, style: .continuous)
+                .stroke(Color(Minimal.border(dark: dark)), lineWidth: Minimal.hairline)
+        )
+        .shadow(color: Color(Minimal.shadowMD()[0].color), radius: Minimal.shadowMD()[0].radius,
+                x: 0, y: Minimal.shadowMD()[0].offset.height)
     }
 }
 
@@ -203,7 +217,7 @@ struct ToastOverlayView: View {
         VStack {
             Spacer()
             if let toast = toastModel.message {
-                HStack(spacing: 8) {
+                HStack(spacing: Minimal.space2) {
                     Group {
                         switch toastModel.kind {
                         case .success:
@@ -220,23 +234,33 @@ struct ToastOverlayView: View {
                                 .foregroundColor(Color(Minimal.destructive(dark: dark)))
                         }
                     }
+                    .font(.system(size: Minimal.fontXS))
                     .accessibilityHidden(true)
+
                     Text(toast)
                         .font(.system(size: Minimal.fontSM, weight: .medium))
+                        .foregroundColor(Color(Minimal.text(dark: dark)))
+                        .lineLimit(2)
                 }
                 .padding(.horizontal, Minimal.space3)
-                .padding(.vertical, Minimal.space2)
-                .background(Capsule().fill(Color(Minimal.controlSurface(dark: dark))))
-                // 多层阴影消费 shadowMD 令牌
-                .shadow(color: Color(Minimal.shadowMD()[0].color), radius: Minimal.shadowMD()[0].radius, x: 0, y: Minimal.shadowMD()[0].offset.height)
-                .shadow(color: Color(Minimal.shadowMD()[1].color), radius: Minimal.shadowMD()[1].radius, x: 0, y: Minimal.shadowMD()[1].offset.height)
+                .padding(.vertical, Minimal.space2 + 2)
+                .background(
+                    RoundedRectangle(cornerRadius: Minimal.radiusSM, style: .continuous)
+                        .fill(Color(Minimal.panel(dark: dark)))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: Minimal.radiusSM, style: .continuous)
+                        .stroke(Color(Minimal.border(dark: dark)), lineWidth: Minimal.hairline)
+                )
+                .shadow(color: Color(Minimal.shadowMD()[0].color), radius: Minimal.shadowMD()[0].radius,
+                        x: 0, y: Minimal.shadowMD()[0].offset.height)
                 .padding(.bottom, Minimal.space4)
             }
         }
     }
 }
 
-// MARK: - 错误横幅（仅订阅 errorMessage 相关状态）
+// MARK: - 错误横幅
 
 struct ErrorBannerView: View {
     @ObservedObject var workspace: Workspace
@@ -245,26 +269,31 @@ struct ErrorBannerView: View {
     var body: some View {
         VStack {
             if let err = workspace.errorMessage {
-                HStack(spacing: 10) {
+                HStack(alignment: .top, spacing: Minimal.space2) {
                     Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: Minimal.fontXS))
                         .foregroundColor(Color(Minimal.destructive(dark: dark)))
                     Text(err)
-                        .font(.system(size: Minimal.fontSM))
-                        .foregroundColor(Color(Minimal.textMuted(dark: dark)))
+                        .font(.system(size: Minimal.fontXS))
+                        .foregroundColor(Color(Minimal.text(dark: dark)))
                         .lineLimit(3)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    Button(action: { workspace.errorMessage = nil }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(Color(Minimal.textMuted(dark: dark)))
+                    MinimalIconButton(systemImage: "xmark", help: L.s.close) {
+                        workspace.errorMessage = nil
                     }
-                    .buttonStyle(.plain)
                 }
-                .padding(.horizontal, Minimal.space3)
-                .padding(.vertical, Minimal.space2)
-                .background(RoundedRectangle(cornerRadius: Minimal.radiusSM)
-                    .fill(Color(Minimal.controlSurface(dark: dark))))
-                .overlay(RoundedRectangle(cornerRadius: Minimal.radiusSM)
-                    .stroke(Color(Minimal.destructive(dark: dark)).opacity(0.4), lineWidth: 1))
+                .padding(.leading, Minimal.space3)
+                .padding(.trailing, Minimal.space1)
+                .padding(.vertical, Minimal.space2 - 2)
+                .background(
+                    RoundedRectangle(cornerRadius: Minimal.radiusSM, style: .continuous)
+                        .fill(Color(Minimal.destructiveSoft(dark: dark)))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: Minimal.radiusSM, style: .continuous)
+                        .stroke(Color(Minimal.destructive(dark: dark).withAlphaComponent(0.35)),
+                                lineWidth: Minimal.hairline)
+                )
                 .padding(.horizontal, Minimal.space3)
                 .padding(.top, Minimal.space2)
             }
@@ -361,50 +390,40 @@ extension ContentView {
     }
 
     // MARK: - 状态栏
+    //
+    //  只保留「当前指向哪里」与「改过没有」：序列数 / 列数 / 类型已经在右侧统计面板
+    //  的概览里，状态栏重复一遍只会把真正会随光标变化的三项挤到右边。
 
     var statusBar: some View {
         HStack(spacing: 0) {
             if let align = workspace.currentAlignment {
-                statusItem(L.s.statusSeqCount, "\(align.seqCount)")
-                statusDivider()
-                statusItem(L.s.statusColCount, "\(align.length)")
-                statusDivider()
-                statusItem(L.s.statusPosition, "\(cursorRow + 1), \(cursorCol + 1)")
+                statusItem(L.s.statusPosition, "\(cursorRow + 1):\(cursorCol + 1)")
                 statusDivider()
                 statusItem(L.s.statusResidue, cursorResidue)
                 if let identity = cursorColumnIdentity {
                     statusDivider()
                     statusItem(L.s.statusIdentity, "\(Int(round(identity * 100)))%")
                 }
-                statusDivider()
-                statusItem(L.s.statusType, align.datatype == .nucleicAcid ? L.s.statusNucleic : L.s.statusAmino)
-
                 if !align.charsets.isEmpty {
                     statusDivider()
-                    statusItem("Charset", "\(align.charsets.count)")
+                    statusItem(L.s.statusCharset, "\(align.charsets.count)")
                 }
-
-                // 后台保存期间的状态提示
                 if workspace.isSaving {
                     statusDivider()
-                    HStack(spacing: 4) {
-                        ProgressView()
-                            .controlSize(.mini)
+                    HStack(spacing: Minimal.space1) {
+                        ProgressView().controlSize(.mini)
                         Text(L.s.savingText)
                             .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
                     }
                 }
 
-                Spacer()
+                Spacer(minLength: Minimal.space3)
                 if !workspace.currentFileName.isEmpty {
                     if workspace.isDirty {
-                        Text("●")
-                            .font(.system(size: Minimal.fontXXS))
-                            .foregroundColor(Color(Minimal.destructive(dark: NSAppearance.isDarkNow)))
+                        Circle()
+                            .fill(Color(Minimal.warningSolid(dark: isDarkAppearance)))
+                            .frame(width: 5, height: 5)
                     }
-                    Image(systemName: "doc")
-                        .font(.system(size: Minimal.fontXS))
-                        .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
                     Text(workspace.currentFileName)
                         .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
                         .lineLimit(1)
@@ -417,12 +436,13 @@ extension ContentView {
                 Spacer()
             }
         }
-        .font(.system(size: Minimal.fontXS))
+        .font(.system(size: Minimal.fontXXS))
         .padding(.horizontal, Minimal.space3)
-        .padding(.vertical, Minimal.space2)
-        .background(Color(Minimal.controlSurface(dark: isDarkAppearance)))
+        .frame(height: 26)
+        .background(Color(Minimal.panel(dark: isDarkAppearance)))
         .overlay(alignment: .top) {
-            Rectangle().fill(Color(Minimal.border(dark: isDarkAppearance))).frame(height: 1)
+            Rectangle().fill(Color(Minimal.border(dark: isDarkAppearance)))
+                .frame(height: Minimal.hairline)
         }
     }
 
@@ -442,7 +462,7 @@ extension ContentView {
     }
 
     private func statusItem(_ label: String, _ value: String) -> some View {
-        HStack(spacing: 4) {
+        HStack(spacing: Minimal.space1 + 2) {
             Text(label)
                 .lineLimit(1)
                 .foregroundColor(Color(Minimal.textMuted(dark: isDarkAppearance)))
@@ -457,8 +477,8 @@ extension ContentView {
 
     private func statusDivider() -> some View {
         Rectangle()
-            .fill(Color(Minimal.border(dark: isDarkAppearance)))   // borderStrong → border
-            .frame(width: 1, height: Minimal.space3)
-            .padding(.horizontal, Minimal.space2)
+            .fill(Color(Minimal.border(dark: isDarkAppearance)))
+            .frame(width: Minimal.hairline, height: Minimal.space2 + 2)
+            .padding(.horizontal, Minimal.space2 + 2)
     }
 }

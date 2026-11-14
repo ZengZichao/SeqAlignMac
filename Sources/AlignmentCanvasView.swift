@@ -741,7 +741,7 @@ final class AlignmentCanvasView: NSView {
         let cons = stats.consensus[column]
         let identity = stats.identity[column]
         let consChar = (cons == 0x2D) ? "—" : String(UnicodeScalar(cons))
-        let text = "列 \(column + 1) · 共识 \(consChar) · 一致度 \(Int(identity * 100))%"
+        let text = "列 \(column + 1)，共识 \(consChar)，一致度 \(Int(identity * 100))%"
         let font = NSFont.systemFont(ofSize: 11, weight: .medium)
         let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: Minimal.text(dark: self.isDarkAppearance)]
         let size = (text as NSString).size(withAttributes: attrs)
