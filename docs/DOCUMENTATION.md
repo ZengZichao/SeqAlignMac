@@ -2618,7 +2618,7 @@ the canonical text: the "unacceptable behaviour" enumeration collapses into one 
 
 Counts (format count, test count, table count) currently exist in several places at once —
 `README.md:8`, `README_ZH.md:8`, `.zenodo.json:9`, and `aboutFeatures` in
-`Localization.swift:1528`. New prose should cite this document rather than restate the numbers,
+`Localization.swift:1544`. New prose should cite this document rather than restate the numbers,
 so the next change has one place to fix.
 
 ### 16.2 Versioning and release metadata
