@@ -2587,9 +2587,8 @@ The repository contains **no** email address, PGP key fingerprint, or form URL, 
 `SECURITY.md:15` and `CODE_OF_CONDUCT.md:31` refer to "the channels published by the maintainer";
 GitHub private vulnerability reporting is the only actionable path today. Release metadata cannot
 be cross-checked from inside the repository either: `.zenodo.json` carries **no version, no
-publication date, and no DOI field**, so the `v0.1.0` of `CITATION.cff:10` and the two Zenodo DOIs
-(the version DOI at `CITATION.cff:12-13`, the concept DOI in the badge at `README.md:4`) rest
-entirely on the deposited record.
+publication date, and no DOI field**, so the `0.2.0` of `CITATION.cff:10` and the concept DOI at
+`CITATION.cff:12-13` (also in the badge at `README.md:4`) rest entirely on the deposited record.
 `CITATION.cff` itself is valid CFF 1.2.0 and its author entry uses the canonical
 `family-names`/`given-names` keys (`:6-7`). `CODE_OF_CONDUCT.md` is no longer the
 failed-translation specimen this section once described — the headings are localised
@@ -2624,24 +2623,25 @@ so the next change has one place to fix.
 
 ### 16.2 Versioning and release metadata
 
-`0.1.0` is recorded in `Info.plist:15-18` (`CFBundleShortVersionString` and `CFBundleVersion`,
-the packaging source of truth), `CITATION.cff:10` (`"v0.1.0"`), the git tag `v0.1.0`, `README.md:35`,
-and in **hard-coded strings** `Localization.swift:1526` (`aboutVersion`) and `:1750`. There is no
-`CFBundleShortVersionString` lookup anywhere in `Sources/`, so the About box displays a fourth,
-manually maintained copy, and `build.sh` embeds no version (it copies `Info.plist` verbatim). Git
-history starts at the squashed initial import (`8ac0015`, 2026-09-24); the `v0.1.0` tag still
-points at that import, so everything committed since lies outside the tagged tree — including
-this `docs/` directory, which first entered the repository after the tag was cut. A reader who
-downloads the archived `v0.1.0` deposit therefore does not receive these documents: they exist
-only on `main`.
+`0.2.0` is recorded in `Info.plist:15-18` (`CFBundleShortVersionString` and `CFBundleVersion`,
+the packaging source of truth), `CITATION.cff:10` (`"0.2.0"`), the git tag `v0.2.0`, `README.md:35`,
+and in **hard-coded strings** `Localization.swift:1542` (`aboutVersion`, Chinese) and `:1768`
+(English). There is no `CFBundleShortVersionString` lookup anywhere in `Sources/`, so the About box
+displays a fourth, manually maintained copy, and `build.sh` embeds no version (it copies
+`Info.plist` verbatim). Git history starts at the squashed initial import (`8ac0015`, 2026-09-24);
+the `v0.1.0` tag points at that import, and the `v0.2.0` tag at `5d73c26` (2026-11-14), so only
+the interface-refinement commit `694caf5` lies outside the tagged tree. The `docs/` directory
+entered the repository after `v0.1.0` was cut — it is absent from that tag's tree — and is included
+in `v0.2.0`.
 
 Two Zenodo DOIs are in circulation *by design* and should be labelled explicitly wherever quoted:
-the **concept DOI** `10.5281/zenodo.23053513` (badge; resolves to the newest release) and the
-**version DOI** `10.5281/zenodo.23053514` (`CITATION.cff:12-13`, and the BibTeX entry at
-`README.md:106-114`, which carries `note = {v0.1.0}`). Neither can be verified from inside this
-repository, because `.zenodo.json` has no DOI field. Licence: MIT. Only two files declare it *as
-data* — `CITATION.cff:14` (`license: MIT`, which is the SPDX id) and `.zenodo.json:10-12`
-(`license.name`); `LICENSE:3`, `README.md:183` and the `NSHumanReadableCopyright` string at
+the **concept DOI** `10.5281/zenodo.23053513` (badge at `README.md:4`; resolves to the newest
+release) and the **version DOI** `10.5281/zenodo.23053514` (cited only by the deposited records —
+no file in this repository references it). The BibTeX entry at `README.md:108-120` carries
+`note = {v0.2.0}` (`:115`) and the concept DOI (`:117`). Neither DOI can be verified from inside
+this repository, because `.zenodo.json` has no DOI field. Licence: MIT. Only two files declare it
+*as data* — `CITATION.cff:14` (`license: MIT`, which is the SPDX id) and `.zenodo.json:10-12`
+(`license.name`); `LICENSE:3`, `README.md:187` and the `NSHumanReadableCopyright` string at
 `Info.plist:26` state it in prose only.
 
 ### 16.3 References
