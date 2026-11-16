@@ -2099,7 +2099,7 @@ FASTQ），通用「另存为」面板提供五种扩展名，而写出器支持
 | [`CODE_OF_CONDUCT.md`](../CODE_OF_CONDUCT.md) | Contributor Covenant 2.0 |
 | [`LICENSE`](../LICENSE)、[`CITATION.cff`](../CITATION.cff)、[`.zenodo.json`](../.zenodo.json) | MIT 许可证、引用、存档元数据 |
 
-各类计数（格式数、测试数、表数）目前同时存在于多处——`README.md:8`、`README_ZH.md:8`、`.zenodo.json:9`，以及 `Localization.swift:1528` 中的 `aboutFeatures`。新写的文字应引用本文而不要重述这些数字，这样下一次改动只需在一处修正。
+各类计数（格式数、测试数、表数）目前同时存在于多处——`README.md:8`、`README_ZH.md:8`、`.zenodo.json:9`，以及 `Localization.swift:1544` 中的 `aboutFeatures`。新写的文字应引用本文而不要重述这些数字，这样下一次改动只需在一处修正。
 
 ### 16.2 版本与发布元数据
 
