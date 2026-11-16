@@ -7,7 +7,7 @@ authors:
     given-names: "Zichao"
     affiliation: "Shanghai Jiao Tong University"
 date-released: "2026-11-14"
-version: "v0.2.0"
+version: "0.2.0"
 repository-code: "https://github.com/ZengZichao/SeqAlignMac"
 url: "https://doi.org/10.5281/zenodo.23053513"
 doi: 10.5281/zenodo.23053513

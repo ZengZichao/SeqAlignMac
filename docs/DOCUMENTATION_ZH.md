@@ -2073,8 +2073,8 @@ FASTQ），通用「另存为」面板提供五种扩展名，而写出器支持
 仓库中**没有**电子邮箱地址、PGP 密钥指纹或表单 URL，然而 `SECURITY.md:15` 与
 `CODE_OF_CONDUCT.md:31` 都提到“维护者公布的渠道”；GitHub 的私有漏洞报告是今天唯一可行的路径。
 发布元数据同样无法在仓库内部交叉核对：`.zenodo.json` **不含版本号、不含发布日期、也没有 DOI
-字段**，因此 `CITATION.cff:10` 的 `v0.1.0` 与两个 Zenodo DOI（版本 DOI 在 `CITATION.cff:12-13`，
-概念 DOI 在 `README.md:4` 的徽章中）完全依赖于存档记录本身。`CITATION.cff` 本身是合法的 CFF 1.2.0，其作者条目
+字段**，因此 `CITATION.cff:10` 的 `0.2.0` 与 `CITATION.cff:12-13` 中的概念 DOI（同样出现在
+`README.md:4` 的徽章中）完全依赖于存档记录本身。`CITATION.cff` 本身是合法的 CFF 1.2.0，其作者条目
 使用的是规范的 `family-names`/`given-names` key（`:6-7`）。`CODE_OF_CONDUCT.md` 已不再是本节
 曾经描述的“翻译失败样本”——标题已完成本地化（`## 可接受的行为示例`，`:9`），
 「坦然接受建设性批评」（`:13`）取代了未翻译的 "gracefully"——但它是对 Contributor Covenant 2.0 的
@@ -2103,21 +2103,22 @@ FASTQ），通用「另存为」面板提供五种扩展名，而写出器支持
 
 ### 16.2 版本与发布元数据
 
-`0.1.0` 记录在 `Info.plist:15-18`（`CFBundleShortVersionString` 与 `CFBundleVersion`，即打包的
-事实来源）、`CITATION.cff:10`（`"v0.1.0"`）、git 标签 `v0.1.0`、`README.md:35`，以及
-**硬编码字符串** `Localization.swift:1526`（`aboutVersion`）和 `:1750` 中。`Sources/`
+`0.2.0` 记录在 `Info.plist:15-18`（`CFBundleShortVersionString` 与 `CFBundleVersion`，即打包的
+事实来源）、`CITATION.cff:10`（`"0.2.0"`）、git 标签 `v0.2.0`、`README.md:35`，以及
+**硬编码字符串** `Localization.swift:1542`（`aboutVersion`，中文）和 `:1768`（英文）中。`Sources/`
 中没有任何地方去查询 `CFBundleShortVersionString`，因此「关于」窗口显示的是第四份手工维护的副本，
 而 `build.sh` 并不嵌入版本信息（它逐字复制 `Info.plist`）。git 历史的起点是压缩后的初始导入
-（`8ac0015`，2026-09-24）；`v0.1.0` 标签至今仍指向那次导入，因此此后提交的一切都在被标记的树之外——
-其中也包括本 `docs/` 目录，它是在标签打出之后才第一次进入仓库的。所以，下载已存档的 `v0.1.0`
-的人拿不到这些文档：它们只存在于 `main` 分支上。
+（`8ac0015`，2026-09-24）；`v0.1.0` 标签指向那次导入，`v0.2.0` 标签指向 `5d73c26`（2026-11-14），
+因此只有界面 refinement 提交 `694caf5` 在被标记的树之外。本 `docs/` 目录在 `v0.1.0` 打出之后
+才进入仓库（该标签的树中没有它），但已包含在 `v0.2.0` 中。
 
 两个 Zenodo DOI 是*有意*并行使用的，凡引用都应明确标注：**概念 DOI**
-`10.5281/zenodo.23053513`（徽章；解析到最新发布版本）与**版本 DOI**
-`10.5281/zenodo.23053514`（`CITATION.cff:12-13`，以及 `README.md:106-114` 的 BibTeX 条目——后者带
-`note = {v0.1.0}`）。二者都无法在本仓库内部验证，因为 `.zenodo.json` 没有 DOI 字段。许可证：MIT。
+`10.5281/zenodo.23053513`（`README.md:4` 徽章；解析到最新发布版本）与**版本 DOI**
+`10.5281/zenodo.23053514`（仅由存档记录引用——本仓库没有任何文件引用它）。`README.md:108-120`
+的 BibTeX 条目带 `note = {v0.2.0}`（`:115`）与概念 DOI（`:117`）。二者都无法在本仓库内部验证，
+因为 `.zenodo.json` 没有 DOI 字段。许可证：MIT。
 只有两个文件把许可证作为*数据*声明——`CITATION.cff:14`（`license: MIT`，即 SPDX id）与
-`.zenodo.json:10-12`（`license.name`）；`LICENSE:3`、`README.md:183` 与 `Info.plist:26` 的
+`.zenodo.json:10-12`（`license.name`）；`LICENSE:3`、`README.md:187` 与 `Info.plist:26` 的
 `NSHumanReadableCopyright` 只是以散文表述。
 
 ### 16.3 参考文献
