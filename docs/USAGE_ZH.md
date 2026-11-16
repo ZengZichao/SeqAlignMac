@@ -1352,7 +1352,7 @@ PNG 路径会拒绝荒谬的输出尺寸；该消息目前只有中文
 **两个窗口显示相同的"关于"／版本。**
 `帮助（Help）▸ 关于序列对齐（About SeqAlign）` 会显示版本，而那个字符串是硬编码在 app
 里的，不是从 bundle 读取的，所以即使是本地重新构建的二进制，它也总是说
-**Version 0.1.0**。就打包而言，权威版本是 `Info.plist` 里的 `CFBundleShortVersionString`，
+**Version 0.2.0**。就打包而言，权威版本是 `Info.plist` 里的 `CFBundleShortVersionString`，
 你可以用下面的命令查看：
 
 ```bash
