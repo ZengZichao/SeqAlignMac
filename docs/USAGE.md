@@ -1395,7 +1395,7 @@ only the wording differs. The English/Chinese toggle (section 12) does not chang
 
 **Two windows show the same About/version.**
 `Help ▸ About SeqAlign` shows the version, and that string is hard-coded in the app rather than read from
-the bundle, so it always says **Version 0.1.0** even for a locally rebuilt binary. The authoritative version
+the bundle, so it always says **Version 0.2.0** even for a locally rebuilt binary. The authoritative version
 for packaging is `Info.plist`'s `CFBundleShortVersionString`, which you can check with:
 
 ```bash

@@ -56,7 +56,7 @@
 
 SeqAlignMac 是一个原生 macOS 应用，用于查看、编辑和分析多序列比对（MSA），并附带一个编译进同一可执行文件的无界面命令行模式。它读写七种比对格式——FASTA、FASTQ、NEXUS、PHYLIP、CLUSTAL、MSF、Stockholm——并透明处理 `gzip`/BGZF 解压；通过虚拟化的 Core Text 画布渲染任意规模的多序列比对（MSA）；计算比对质量统计、共识序列、序列 Logo、邻接法系统发育树、滑动窗口一致度、基于 17 张 NCBI 遗传密码表的六阅读框翻译，以及引物热力学。
 
-分发元数据（`Info.plist:13-18`）将包标识命名为 `com.seqalign.mac`，显示名为 `序列对齐`，版本为 `0.1.0`。该可执行文件同时充当 CLI：`SeqAlignMac cli …`（`SeqAlignMacApp.swift:22-27`）。
+分发元数据（`Info.plist:13-18`）将包标识命名为 `com.seqalign.mac`，显示名为 `序列对齐`，版本为 `0.2.0`。该可执行文件同时充当 CLI：`SeqAlignMac cli …`（`SeqAlignMacApp.swift:22-27`）。
 
 ### 2.2 设计目标
 
@@ -1420,7 +1420,7 @@ row = floor((y − topBarHeight  − consensusHeight) / cellHeight)
 * **锁纪律：** 每个 `Alignment` 一把 `NSRecursiveLock`；行主序扫描**只获取一次**该锁
   （`ColumnStats.swift:110-126`）；`lockedSequences` 在闭包内部完成拷贝，以遵守"引用不得逃逸"的
   约定（`AlignmentCore.swift:204-211`、`TranslationTables.swift:306-314`、
-  `PhyloBuilder.swift:511-522`）。
+  `ColumnStats.swift:511-522`）。
 * **惰性求值：** 长度按 `revision` 缓存；在 64 列预算之内使用增量统计；正则搜索每行只解码一次
   （`SearchEngine.swift:47-49`）；KMP 状态在多次 `next()` 之间保持。
 

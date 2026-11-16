@@ -80,7 +80,7 @@ consensus sequences, sequence logos, neighbour-joining trees, sliding-window ide
 six-frame translations over 17 NCBI genetic-code tables, and primer thermodynamics.
 
 Distribution metadata (`Info.plist:13-18`) names the bundle `com.seqalign.mac`, display name
-`序列对齐`, version `0.1.0`. The executable doubles as a CLI: `SeqAlignMac cli …`
+`序列对齐`, version `0.2.0`. The executable doubles as a CLI: `SeqAlignMac cli …`
 (`SeqAlignMacApp.swift:22-27`).
 
 ### 2.2 Design goals
@@ -1868,7 +1868,7 @@ over non-selected cells; even rows get zebra banding. Search hits use the app's 
 * **Locking discipline:** one `NSRecursiveLock` per `Alignment`; row-major scans take it **once**
   (`ColumnStats.swift:110-126`); `lockedSequences` copies inside the closure to honour the
   no-reference-escape contract (`AlignmentCore.swift:204-211`,
-  `TranslationTables.swift:306-314`, `PhyloBuilder.swift:511-522`).
+  `TranslationTables.swift:306-314`, `ColumnStats.swift:511-522`).
 * **Laziness:** length cached on `revision`; incremental stats under the 64-column budget; regex
   search decodes each row once (`SearchEngine.swift:47-49`); KMP state persists across `next()`.
 
